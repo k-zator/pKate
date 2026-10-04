@@ -1,0 +1,16 @@
+smiles,site_label,site_family,reference_pka,source_file,record_index,panel_role,verification_status,note
+CO,primary_alcohol,alcohol_alkoxide,15.5,literature_compilation.sdf,76,calibration_anchor,project_curated_not_independent_external_test,methanol neutral-alcohol acidity
+CCO,primary_alcohol,alcohol_alkoxide,15.9,literature_compilation.sdf,77,calibration_anchor,project_curated_not_independent_external_test,original structure field is OCC; charged drawing must not define transition
+c1cc[nH]c1,pyrrole,amine,-3.8,literature_compilation.sdf,68,calibration_anchor,project_curated_not_independent_external_test,pyrrole carbon-protonation convention used by project
+Cn1cccc1,pyrrole,amine,-2.9,literature_compilation.sdf,69,calibration_anchor,project_curated_not_independent_external_test,1-methylpyrrole
+Cc1cc[nH]c1,pyrrole,amine,-1.0,literature_compilation.sdf,71,calibration_anchor,project_curated_not_independent_external_test,3-methylpyrrole
+c1ccncc1,pyridine,amine,5.3,literature_compilation.sdf,53,calibration_anchor,project_curated_not_independent_external_test,pyridinium-to-pyridine
+c1cn[nH]c1,pyrazole,amine,2.5,literature_compilation.sdf,52,calibration_anchor,project_curated_not_independent_external_test,kept separate from pyrrole
+Oc1ccccc1,phenol,phenol_phenolate,10.0,literature_compilation.sdf,92,calibration_anchor,project_curated_not_independent_external_test,phenol acidity
+C[NH3+],primary_ammonium,amine,10.2,literature_compilation.sdf,11,calibration_anchor,project_curated_not_independent_external_test,methylammonium
+CC[NH3+],primary_ammonium,amine,10.6,literature_compilation.sdf,12,calibration_anchor,project_curated_not_independent_external_test,ethylammonium
+Nc1ccccc1,aniline,amine,4.6,literature_compilation.sdf,36,calibration_anchor,project_curated_not_independent_external_test,anilinium-to-aniline
+c1c[nH]cn1,imidazole,amine,7.0,literature_compilation.sdf,48,calibration_anchor,project_curated_not_independent_external_test,imidazole
+NC(N)=[NH2+],guanidinium,guanidine_like,13.8,literature_compilation.sdf,66,calibration_anchor,project_curated_not_independent_external_test,guanidinium
+CC(=O)O,carboxylic_acid,carboxyl,4.8,literature_compilation.sdf,122,calibration_anchor,project_curated_not_independent_external_test,acetic acid
+O=CO,carboxylic_acid,carboxyl,3.8,literature_compilation.sdf,127,calibration_anchor,project_curated_not_independent_external_test,formic acid

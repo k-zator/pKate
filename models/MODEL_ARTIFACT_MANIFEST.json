@@ -1,0 +1,56 @@
+{
+  "schema_version": "1.0.0",
+  "status": "local_release_candidate_not_uploaded",
+  "bundle": {
+    "filename": "pkate-models-experimental-only.tar.gz",
+    "bytes": 52362906,
+    "sha256": "23c986b5bc9135c527e808c41f17d6921072d3008dd1ca8c6073892264666beb"
+  },
+  "installation_root": "data/processed/ml_models_experimental_only",
+  "stage1": {
+    "schema_version": "3.1.0",
+    "training_rows": 2184,
+    "trained_on_all_eligible_rows": true,
+    "training_dataset_sha256": "bf8b60188da7a170c17f94eafa76068767a824f2b0351f23d0f682f849a944e2"
+  },
+  "stage2": {
+    "schema_version": "2.2.0",
+    "free_energy_schema_version": "1.0.0",
+    "training_rows": 1831,
+    "training_measurement_method": "experimental",
+    "training_dataset_sha256": "249b1cfb1f89d9ed3703337b165281f4e6fcc37c260ed15db6217eb848746201",
+    "network_dataset_sha256": "61a90a9ec30db77d78f6151e3c48f389a9c57971f1c4aefef7523c84e4256dfb"
+  },
+  "artifacts": [
+    {
+      "path": "stage1_intrinsic/stage1_intrinsic_model.pkl",
+      "bytes": 96131032,
+      "sha256": "bb2f45c842eefeb2ddc111a2988cd8ecf4ba3da11698562cb2f217f81e25315c"
+    },
+    {
+      "path": "stage1_intrinsic/metrics.json",
+      "bytes": 7241,
+      "sha256": "46a6c77e8cf2cf4a5762ac16ddf6b4b084ff03a34ed6cef8cc1ea2ee9647a9d2"
+    },
+    {
+      "path": "stage1_intrinsic/scaffold_oof_predictions.csv",
+      "bytes": 1668569,
+      "sha256": "784a2969db49a5eaff706bce04c02fa8c89976cb956e727269a1237846e104e8"
+    },
+    {
+      "path": "stage2_network_context/stage2_network_context_model.pkl",
+      "bytes": 39197913,
+      "sha256": "4997e8ee2a91826c7b5fd61d634e14acfec2b362b488875c328f28127281e11e"
+    },
+    {
+      "path": "stage2_network_context/scaffold_eval_predictions.csv",
+      "bytes": 5879566,
+      "sha256": "2cc4957cd4694c3e609b410ca781082ef74fecb7b352ada7eae88be444cc8c26"
+    },
+    {
+      "path": "stage2_network_context/training_site_quarantine.csv",
+      "bytes": 6623,
+      "sha256": "387f65dc77a897853d0e7528251d44575b7562d25b242ad67d21af8762bf6cc1"
+    }
+  ]
+}

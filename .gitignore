@@ -1,0 +1,49 @@
+# Python and test caches
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+
+# Local environments and editor state
+.venv/
+venv/
+env/
+.conda/
+prot/
+.vscode/
+.idea/
+.DS_Store
+
+# Generated logs and temporary files
+*.log
+*.tmp
+*.bak
+
+# Locally assembled release assets; upload these to GitHub Releases rather
+# than committing large binary bundles to repository history.
+/dist/
+
+# Raw inputs and generated scientific artifacts are not stored in Git.
+# Keep their acquisition/provenance manifest, manual curation overlays, and
+# documentation under version control so ignored data are still discoverable.
+/data/*
+!/data/README.md
+!/data/TRAINING_DATA_MANIFEST.csv
+!/data/curation/
+!/data/curation/**
+!/data/processed/
+/data/processed/*
+!/data/processed/PART1_site_resolution_overrides.csv
+!/data/processed/PART2_site_resolution_overrides.csv
+
+# External benchmark/data clones
+/SAMPL6/
+/pkasolver-data/
+
+# Local scratch/example files
+/04_chembl_dataset_filtered.sdf
+/xx.xyz

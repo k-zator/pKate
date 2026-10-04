@@ -1,0 +1,64 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      MPLBACKEND: Agg
+      MPLCONFIGDIR: ${{ runner.temp }}/matplotlib
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+
+      - name: Install environment
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-dev.txt
+
+      - name: Run unit tests with coverage
+        run: python scripts/run_unit_tests.py --coverage --html
+
+      - name: Validate documentation figure
+        run: |
+          python scripts/render_pipeline_overview.py --output-dir "${RUNNER_TEMP}/pipeline-figure"
+
+      - name: Upload HTML coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-html
+          path: htmlcov
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Upload coverage to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/codecov-action@v5
+        with:
+          use_oidc: true
+          files: coverage.xml
+          disable_search: true
+          fail_ci_if_error: false

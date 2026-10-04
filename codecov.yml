@@ -1,0 +1,25 @@
+coverage:
+  precision: 1
+  round: down
+  range: "50...90"
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 1%
+    patch:
+      default:
+        target: 70%
+        threshold: 5%
+
+comment:
+  layout: "reach, diff, flags, files"
+  behavior: default
+  require_changes: false
+
+ignore:
+  - "scripts/score_candidate_set_with_pipeline.py"
+  - "scripts/stage3_protonation_state_inference.py"
+  - "scripts/train_delta_context_model.py"
+  - "scripts/train_site_state_model.py"
+  - "scripts/train_thermo_pair_form_model.py"

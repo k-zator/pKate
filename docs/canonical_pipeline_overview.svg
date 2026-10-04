@@ -1,0 +1,777 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="910.08pt" height="516.24pt" viewBox="0 0 910.08 516.24" xmlns="http://www.w3.org/2000/svg" version="1.1">
+ <title>Canonical pKate pipeline overview</title>
+ <metadata>
+  <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+   <cc:Work>
+    <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+    <dc:title>Canonical pKate pipeline overview</dc:title>
+    <dc:description>Four-step diagram from curated pKa evidence and atom-mapped microstate networks through intrinsic pKa, multisite correction, and complete-state inference.</dc:description>
+    <dc:format>image/svg+xml</dc:format>
+    <dc:creator>
+     <cc:Agent>
+      <dc:title>Matplotlib v3.10.8, https://matplotlib.org/</dc:title>
+     </cc:Agent>
+    </dc:creator>
+   </cc:Work>
+  </rdf:RDF>
+ </metadata>
+ <defs>
+  <style type="text/css">*{stroke-linejoin: round; stroke-linecap: butt}</style>
+ </defs>
+ <g id="figure_1">
+  <g id="patch_1">
+   <path d="M 0 516.24 
+L 910.08 516.24 
+L 910.08 0 
+L 0 0 
+z
+" style="fill: #f8fafc"/>
+  </g>
+  <g id="axes_1">
+   <g id="patch_2">
+    <path d="M 39.888 404.31528 
+L 211.3056 404.31528 
+Q 227.376 404.31528 227.376 395.334 
+L 227.376 93.4632 
+Q 227.376 84.48192 211.3056 84.48192 
+L 39.888 84.48192 
+Q 23.8176 84.48192 23.8176 93.4632 
+L 23.8176 395.334 
+Q 23.8176 404.31528 39.888 404.31528 
+z
+" style="fill: #eef2f7; stroke: #475569; stroke-width: 1.7; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_3">
+    <path d="M 258.624 404.31528 
+L 430.0416 404.31528 
+Q 446.112 404.31528 446.112 395.334 
+L 446.112 93.4632 
+Q 446.112 84.48192 430.0416 84.48192 
+L 258.624 84.48192 
+Q 242.5536 84.48192 242.5536 93.4632 
+L 242.5536 395.334 
+Q 242.5536 404.31528 258.624 404.31528 
+z
+" style="fill: #e6f1ff; stroke: #2563eb; stroke-width: 1.7; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_4">
+    <path d="M 477.36 404.31528 
+L 648.7776 404.31528 
+Q 664.848 404.31528 664.848 395.334 
+L 664.848 93.4632 
+Q 664.848 84.48192 648.7776 84.48192 
+L 477.36 84.48192 
+Q 461.2896 84.48192 461.2896 93.4632 
+L 461.2896 395.334 
+Q 461.2896 404.31528 477.36 404.31528 
+z
+" style="fill: #f2eaff; stroke: #7c3aed; stroke-width: 1.7; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_5">
+    <path d="M 696.096 404.31528 
+L 867.5136 404.31528 
+Q 883.584 404.31528 883.584 395.334 
+L 883.584 93.4632 
+Q 883.584 84.48192 867.5136 84.48192 
+L 696.096 84.48192 
+Q 680.0256 84.48192 680.0256 93.4632 
+L 680.0256 395.334 
+Q 680.0256 404.31528 696.096 404.31528 
+z
+" style="fill: #e4f8ea; stroke: #15803d; stroke-width: 1.7; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_6">
+    <path d="M 34.5312 461.69568 
+L 216.6624 461.69568 
+Q 227.376 461.69568 227.376 455.70816 
+L 227.376 413.79552 
+Q 227.376 407.808 216.6624 407.808 
+L 34.5312 407.808 
+Q 23.8176 407.808 23.8176 413.79552 
+L 23.8176 455.70816 
+Q 23.8176 461.69568 34.5312 461.69568 
+z
+" style="fill: #f8fafc; stroke: #94a3b8; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_7">
+    <path d="M 253.2672 461.69568 
+L 435.3984 461.69568 
+Q 446.112 461.69568 446.112 455.70816 
+L 446.112 413.79552 
+Q 446.112 407.808 435.3984 407.808 
+L 253.2672 407.808 
+Q 242.5536 407.808 242.5536 413.79552 
+L 242.5536 455.70816 
+Q 242.5536 461.69568 253.2672 461.69568 
+z
+" style="fill: #eff6ff; stroke: #93c5fd; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_8">
+    <path d="M 472.0032 461.69568 
+L 654.1344 461.69568 
+Q 664.848 461.69568 664.848 455.70816 
+L 664.848 413.79552 
+Q 664.848 407.808 654.1344 407.808 
+L 472.0032 407.808 
+Q 461.2896 407.808 461.2896 413.79552 
+L 461.2896 455.70816 
+Q 461.2896 461.69568 472.0032 461.69568 
+z
+" style="fill: #f5f3ff; stroke: #c4b5fd; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_9">
+    <path d="M 690.7392 461.69568 
+L 872.8704 461.69568 
+Q 883.584 461.69568 883.584 455.70816 
+L 883.584 413.79552 
+Q 883.584 407.808 872.8704 407.808 
+L 690.7392 407.808 
+Q 680.0256 407.808 680.0256 413.79552 
+L 680.0256 455.70816 
+Q 680.0256 461.69568 690.7392 461.69568 
+z
+" style="fill: #f0fdf4; stroke: #86efac; stroke-linejoin: miter"/>
+   </g>
+   <g id="text_1">
+    <text style="font-weight: 700; font-size: 22px; font-family: 'cmr10', 'DejaVu Serif', serif; text-anchor: start; fill: #172033" x="30.96" y="47.856017" transform="rotate(-0 30.96 47.856017)">From experimental pKa evidence to a complete molecular microstate</text>
+   </g>
+   <g id="text_2">
+    <!-- Canonical pK$_a$te pipeline $\cdot$ atom-mapped, provenance-checked, and explicit about uncertainty -->
+    <g style="fill: #526072" transform="translate(30.96 62.99724)">
+     <text>
+      <tspan x="0" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">C</tspan>
+      <tspan x="7.582764" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">a</tspan>
+      <tspan x="12.832764" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">n</tspan>
+      <tspan x="18.662109" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">o</tspan>
+      <tspan x="23.912109" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">n</tspan>
+      <tspan x="29.741455" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">i</tspan>
+      <tspan x="32.648438" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">c</tspan>
+      <tspan x="37.308838" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">a</tspan>
+      <tspan x="42.558838" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">l</tspan>
+      <tspan x="45.46582" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072"> </tspan>
+      <tspan x="48.962402" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">p</tspan>
+      <tspan x="54.791748" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">K</tspan>
+      <tspan x="67.966652" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">t</tspan>
+      <tspan x="72.042579" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">e</tspan>
+      <tspan x="76.70298" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072"> </tspan>
+      <tspan x="80.199562" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">p</tspan>
+      <tspan x="86.028908" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">i</tspan>
+      <tspan x="88.93589" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">p</tspan>
+      <tspan x="94.765236" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">e</tspan>
+      <tspan x="99.425636" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">l</tspan>
+      <tspan x="102.332619" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">i</tspan>
+      <tspan x="105.239601" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">n</tspan>
+      <tspan x="111.068947" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">e</tspan>
+      <tspan x="115.729347" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072"> </tspan>
+      <tspan x="122.132912" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072"> </tspan>
+      <tspan x="125.629494" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">a</tspan>
+      <tspan x="130.879494" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">t</tspan>
+      <tspan x="134.955421" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">o</tspan>
+      <tspan x="140.205421" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">m</tspan>
+      <tspan x="148.952003" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">-</tspan>
+      <tspan x="152.448585" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">m</tspan>
+      <tspan x="161.195167" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">a</tspan>
+      <tspan x="166.445167" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">p</tspan>
+      <tspan x="172.274513" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">p</tspan>
+      <tspan x="178.103859" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">e</tspan>
+      <tspan x="182.764259" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">d</tspan>
+      <tspan x="188.593605" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">,</tspan>
+      <tspan x="191.500587" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072"> </tspan>
+      <tspan x="194.997169" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">p</tspan>
+      <tspan x="200.826515" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">r</tspan>
+      <tspan x="204.933204" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">o</tspan>
+      <tspan x="210.183204" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">v</tspan>
+      <tspan x="215.715187" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">e</tspan>
+      <tspan x="220.375587" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">n</tspan>
+      <tspan x="226.204933" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">a</tspan>
+      <tspan x="231.454933" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">n</tspan>
+      <tspan x="237.284279" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">c</tspan>
+      <tspan x="241.944679" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">e</tspan>
+      <tspan x="246.605079" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">-</tspan>
+      <tspan x="250.101662" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">c</tspan>
+      <tspan x="254.762062" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">h</tspan>
+      <tspan x="260.591408" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">e</tspan>
+      <tspan x="265.251808" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">c</tspan>
+      <tspan x="269.912208" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">k</tspan>
+      <tspan x="275.444191" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">e</tspan>
+      <tspan x="280.104591" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">d</tspan>
+      <tspan x="285.933937" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">,</tspan>
+      <tspan x="288.840919" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072"> </tspan>
+      <tspan x="292.337501" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">a</tspan>
+      <tspan x="297.587501" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">n</tspan>
+      <tspan x="303.416847" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">d</tspan>
+      <tspan x="309.246193" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072"> </tspan>
+      <tspan x="312.742775" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">e</tspan>
+      <tspan x="317.403175" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">x</tspan>
+      <tspan x="322.935158" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">p</tspan>
+      <tspan x="328.764503" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">l</tspan>
+      <tspan x="331.671486" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">i</tspan>
+      <tspan x="334.578468" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">c</tspan>
+      <tspan x="339.238869" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">i</tspan>
+      <tspan x="342.145851" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">t</tspan>
+      <tspan x="346.221779" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072"> </tspan>
+      <tspan x="349.718361" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">a</tspan>
+      <tspan x="354.968361" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">b</tspan>
+      <tspan x="360.797706" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">o</tspan>
+      <tspan x="366.047706" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">u</tspan>
+      <tspan x="371.877052" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">t</tspan>
+      <tspan x="375.95298" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072"> </tspan>
+      <tspan x="379.449562" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">u</tspan>
+      <tspan x="385.278908" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">n</tspan>
+      <tspan x="391.108253" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">c</tspan>
+      <tspan x="395.768654" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">e</tspan>
+      <tspan x="400.429054" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">r</tspan>
+      <tspan x="404.535744" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">t</tspan>
+      <tspan x="408.611671" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">a</tspan>
+      <tspan x="413.861671" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">i</tspan>
+      <tspan x="416.768654" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">n</tspan>
+      <tspan x="422.597999" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">t</tspan>
+      <tspan x="426.673927" y="-0.59375" style="font-size: 10.5px; font-family: 'cmr10'; fill: #526072">y</tspan>
+      <tspan x="63.417465" y="1.191906" style="font-size: 7.35px; font-family: 'cmmi10'; fill: #526072">a</tspan>
+      <tspan x="119.225929" y="-0.59375" style="font-size: 10.5px; font-family: 'cmsy10'; fill: #526072">¢</tspan>
+     </text>
+    </g>
+   </g>
+   <g id="patch_10">
+    <path d="M 34.5312 395.334 
+L 48.816 395.334 
+Q 52.3872 395.334 52.3872 393.33816 
+L 52.3872 95.45904 
+Q 52.3872 93.4632 48.816 93.4632 
+L 34.5312 93.4632 
+Q 30.96 93.4632 30.96 95.45904 
+L 30.96 393.33816 
+Q 30.96 395.334 34.5312 395.334 
+z
+" style="fill: #475569"/>
+   </g>
+   <g id="patch_11">
+    <path d="M 253.2672 395.334 
+L 267.552 395.334 
+Q 271.1232 395.334 271.1232 393.33816 
+L 271.1232 95.45904 
+Q 271.1232 93.4632 267.552 93.4632 
+L 253.2672 93.4632 
+Q 249.696 93.4632 249.696 95.45904 
+L 249.696 393.33816 
+Q 249.696 395.334 253.2672 395.334 
+z
+" style="fill: #2563eb"/>
+   </g>
+   <g id="patch_12">
+    <path d="M 472.0032 395.334 
+L 486.288 395.334 
+Q 489.8592 395.334 489.8592 393.33816 
+L 489.8592 95.45904 
+Q 489.8592 93.4632 486.288 93.4632 
+L 472.0032 93.4632 
+Q 468.432 93.4632 468.432 95.45904 
+L 468.432 393.33816 
+Q 468.432 395.334 472.0032 395.334 
+z
+" style="fill: #7c3aed"/>
+   </g>
+   <g id="patch_13">
+    <path d="M 690.7392 395.334 
+L 705.024 395.334 
+Q 708.5952 395.334 708.5952 393.33816 
+L 708.5952 95.45904 
+Q 708.5952 93.4632 705.024 93.4632 
+L 690.7392 93.4632 
+Q 687.168 93.4632 687.168 95.45904 
+L 687.168 393.33816 
+Q 687.168 395.334 690.7392 395.334 
+z
+" style="fill: #15803d"/>
+   </g>
+   <g id="text_3">
+    <text style="font-size: 7.7px; font-family: 'cmr10', 'DejaVu Serif', serif; fill: #172033" transform="translate(61.044331 432.854422)">Guardrail: no Marvin or Epik training</text>
+    <text style="font-size: 7.7px; font-family: 'cmr10', 'DejaVu Serif', serif; fill: #172033" transform="translate(58.538823 440.585883)">labels; manual review remains traceable</text>
+   </g>
+   <g id="text_4">
+    <text style="font-size: 7.7px; font-family: 'cmr10', 'DejaVu Serif', serif; fill: #172033" transform="translate(284.2343 432.8075)">Supervision: exact single-coordinate</text>
+    <text style="font-size: 7.7px; font-family: 'cmr10', 'DejaVu Serif', serif; fill: #172033" transform="translate(291.920464 440.538961)">pKas; copied lineages collapsed</text>
+   </g>
+   <g id="text_5">
+    <text style="font-size: 7.7px; font-family: 'cmr10', 'DejaVu Serif', serif; fill: #172033" transform="translate(500.586909 432.804612)">Supervision: exact multisite residuals</text>
+    <text style="font-size: 7.7px; font-family: 'cmr10', 'DejaVu Serif', serif; fill: #172033" transform="translate(512.5953 440.541849)">+ safe low-weight weak labels</text>
+   </g>
+   <g id="text_6">
+    <text style="font-size: 7.7px; font-family: 'cmr10', 'DejaVu Serif', serif; fill: #172033" transform="translate(732.737753 428.99591)">Confidence: held-out residual</text>
+    <text style="font-size: 7.7px; font-family: 'cmr10', 'DejaVu Serif', serif; fill: #172033" transform="translate(726.690847 436.633527)">calibration; tautomer scores stay</text>
+    <text style="font-size: 7.7px; font-family: 'cmr10', 'DejaVu Serif', serif; fill: #172033" transform="translate(767.462948 444.35777)">heuristic</text>
+   </g>
+   <g id="text_7">
+    <text style="font-weight: 700; font-size: 8.5px; font-family: 'cmr10', 'DejaVu Serif', serif; text-anchor: start; fill: #172033" x="30.96" y="487.223987" transform="rotate(-0 30.96 487.223987)">Key distinction:</text>
+   </g>
+   <g id="text_8">
+    <text style="font-size: 8.5px; font-family: 'cmr10', 'DejaVu Serif', serif; text-anchor: start; fill: #526072" x="108.6336" y="487.267816" transform="rotate(-0 108.6336 487.267816)">compare scalar experiments with the macroscopic pKa; one-body and background-specific edge pKas are model parameters.</text>
+   </g>
+   <g id="text_9">
+    <!-- pK$_a$te $\cdot$ canonical molecule-network pipeline -->
+    <g style="fill: #64748b" transform="translate(734.145 487.0218)">
+     <text>
+      <tspan x="0" y="-0.796875" style="font-size: 7.5px; font-family: 'cmr10'; fill: #64748b">p</tspan>
+      <tspan x="4.163818" y="-0.796875" style="font-size: 7.5px; font-family: 'cmr10'; fill: #64748b">K</tspan>
+      <tspan x="13.574464" y="-0.796875" style="font-size: 7.5px; font-family: 'cmr10'; fill: #64748b">t</tspan>
+      <tspan x="16.485841" y="-0.796875" style="font-size: 7.5px; font-family: 'cmr10'; fill: #64748b">e</tspan>
+      <tspan x="19.814698" y="-0.796875" style="font-size: 7.5px; font-family: 'cmr10'; fill: #64748b"> </tspan>
+      <tspan x="24.388673" y="-0.796875" style="font-size: 7.5px; font-family: 'cmr10'; fill: #64748b"> </tspan>
+      <tspan x="26.886231" y="-0.796875" style="font-size: 7.5px; font-family: 'cmr10'; fill: #64748b">c</tspan>
+      <tspan x="30.215089" y="-0.796875" style="font-size: 7.5px; font-family: 'cmr10'; fill: #64748b">a</tspan>
+      <tspan x="33.965089" y="-0.796875" style="font-size: 7.5px; font-family: 'cmr10'; fill: #64748b">n</tspan>
+      <tspan x="38.128907" y="-0.796875" style="font-size: 7.5px; font-family: 'cmr10'; fill: #64748b">o</tspan>
+      <tspan x="41.878907" y="-0.796875" style="font-size: 7.5px; font-family: 'cmr10'; fill: #64748b">n</tspan>
+      <tspan x="46.042726" y="-0.796875" style="font-size: 7.5px; font-family: 'cmr10'; fill: #64748b">i</tspan>
+      <tspan x="48.119142" y="-0.796875" style="font-size: 7.5px; font-family: 'cmr10'; fill: #64748b">c</tspan>
+      <tspan x="51.447999" y="-0.796875" style="font-size: 7.5px; font-family: 'cmr10'; fill: #64748b">a</tspan>
+      <tspan x="55.197999" y="-0.796875" style="font-size: 7.5px; font-family: 'cmr10'; fill: #64748b">l</tspan>
+      <tspan x="57.274415" y="-0.796875" style="font-size: 7.5px; font-family: 'cmr10'; fill: #64748b"> </tspan>
+      <tspan x="59.771974" y="-0.796875" style="font-size: 7.5px; font-family: 'cmr10'; fill: #64748b">m</tspan>
+      <tspan x="66.019532" y="-0.796875" style="font-size: 7.5px; font-family: 'cmr10'; fill: #64748b">o</tspan>
+      <tspan x="69.769532" y="-0.796875" style="font-size: 7.5px; font-family: 'cmr10'; fill: #64748b">l</tspan>
+      <tspan x="71.845948" y="-0.796875" style="font-size: 7.5px; font-family: 'cmr10'; fill: #64748b">e</tspan>
+      <tspan x="75.174806" y="-0.796875" style="font-size: 7.5px; font-family: 'cmr10'; fill: #64748b">c</tspan>
+      <tspan x="78.503663" y="-0.796875" style="font-size: 7.5px; font-family: 'cmr10'; fill: #64748b">u</tspan>
+      <tspan x="82.667481" y="-0.796875" style="font-size: 7.5px; font-family: 'cmr10'; fill: #64748b">l</tspan>
+      <tspan x="84.743897" y="-0.796875" style="font-size: 7.5px; font-family: 'cmr10'; fill: #64748b">e</tspan>
+      <tspan x="88.072755" y="-0.796875" style="font-size: 7.5px; font-family: 'cmr10'; fill: #64748b">-</tspan>
+      <tspan x="90.570313" y="-0.796875" style="font-size: 7.5px; font-family: 'cmr10'; fill: #64748b">n</tspan>
+      <tspan x="94.734132" y="-0.796875" style="font-size: 7.5px; font-family: 'cmr10'; fill: #64748b">e</tspan>
+      <tspan x="98.062989" y="-0.796875" style="font-size: 7.5px; font-family: 'cmr10'; fill: #64748b">t</tspan>
+      <tspan x="100.974366" y="-0.796875" style="font-size: 7.5px; font-family: 'cmr10'; fill: #64748b">w</tspan>
+      <tspan x="106.390626" y="-0.796875" style="font-size: 7.5px; font-family: 'cmr10'; fill: #64748b">o</tspan>
+      <tspan x="110.140626" y="-0.796875" style="font-size: 7.5px; font-family: 'cmr10'; fill: #64748b">r</tspan>
+      <tspan x="113.073976" y="-0.796875" style="font-size: 7.5px; font-family: 'cmr10'; fill: #64748b">k</tspan>
+      <tspan x="117.025392" y="-0.796875" style="font-size: 7.5px; font-family: 'cmr10'; fill: #64748b"> </tspan>
+      <tspan x="119.52295" y="-0.796875" style="font-size: 7.5px; font-family: 'cmr10'; fill: #64748b">p</tspan>
+      <tspan x="123.686769" y="-0.796875" style="font-size: 7.5px; font-family: 'cmr10'; fill: #64748b">i</tspan>
+      <tspan x="125.763185" y="-0.796875" style="font-size: 7.5px; font-family: 'cmr10'; fill: #64748b">p</tspan>
+      <tspan x="129.927003" y="-0.796875" style="font-size: 7.5px; font-family: 'cmr10'; fill: #64748b">e</tspan>
+      <tspan x="133.25586" y="-0.796875" style="font-size: 7.5px; font-family: 'cmr10'; fill: #64748b">l</tspan>
+      <tspan x="135.332276" y="-0.796875" style="font-size: 7.5px; font-family: 'cmr10'; fill: #64748b">i</tspan>
+      <tspan x="137.408692" y="-0.796875" style="font-size: 7.5px; font-family: 'cmr10'; fill: #64748b">n</tspan>
+      <tspan x="141.572511" y="-0.796875" style="font-size: 7.5px; font-family: 'cmr10'; fill: #64748b">e</tspan>
+      <tspan x="10.325045" y="0.478594" style="font-size: 5.25px; font-family: 'cmmi10'; fill: #64748b">a</tspan>
+      <tspan x="22.312257" y="-0.796875" style="font-size: 7.5px; font-family: 'cmsy10'; fill: #64748b">¢</tspan>
+     </text>
+    </g>
+   </g>
+   <g id="text_10">
+    <text style="font-weight: 700; font-size: 7.8px; font-family: 'cmr10', 'DejaVu Serif', serif; text-anchor: start; fill: #475569" x="55.9584" y="119.004694" transform="rotate(-0 55.9584 119.004694)">PREREQUISITE | CURATED NETWORK</text>
+   </g>
+   <g id="text_11">
+    <text style="font-weight: 700; font-size: 13px; font-family: 'cmr10', 'DejaVu Serif', serif; fill: #172033" transform="translate(55.9584 140.903901)">Evidence &amp; microstate</text>
+    <text style="font-weight: 700; font-size: 13px; font-family: 'cmr10', 'DejaVu Serif', serif; fill: #172033" transform="translate(55.9584 152.986711)">network</text>
+   </g>
+   <g id="text_12">
+    <text style="font-style: italic; font-size: 8.5px; font-family: 'cmr10', 'DejaVu Serif', serif; fill: #526072" transform="translate(55.9584 175.702283)">Which measurements, sites, and</text>
+    <text style="font-style: italic; font-size: 8.5px; font-family: 'cmr10', 'DejaVu Serif', serif; fill: #526072" transform="translate(55.9584 184.310366)">molecular states are defensible?</text>
+   </g>
+   <g id="line2d_1">
+    <path d="M 55.9584 205.7292 
+L 202.3776 205.7292 
+" clip-path="url(#pe87345bebf)" style="fill: none; stroke: #cbd5e1; stroke-width: 0.9; stroke-linecap: square"/>
+   </g>
+   <g id="text_13">
+    <!-- $\bullet$ -->
+    <g style="fill: #475569" transform="translate(55.9584 229.328889)">
+     <text>
+      <tspan x="0" y="-0.125" style="font-size: 11px; font-family: 'cmsy10'; fill: #475569">²</tspan>
+     </text>
+    </g>
+   </g>
+   <g id="text_14">
+    <text style="font-size: 8px; font-family: 'cmr10', 'DejaVu Serif', serif; fill: #172033" transform="translate(68.4576 227.33717)">Curate exact-site, ambiguous, and</text>
+    <text style="font-size: 8px; font-family: 'cmr10', 'DejaVu Serif', serif; fill: #172033" transform="translate(68.4576 235.536395)">quarantined pKa evidence</text>
+   </g>
+   <g id="text_15">
+    <!-- $\bullet$ -->
+    <g style="fill: #475569" transform="translate(55.9584 259.765449)">
+     <text>
+      <tspan x="0" y="-0.125" style="font-size: 11px; font-family: 'cmsy10'; fill: #475569">²</tspan>
+     </text>
+    </g>
+   </g>
+   <g id="text_16">
+    <text style="font-size: 8px; font-family: 'cmr10', 'DejaVu Serif', serif; fill: #172033" transform="translate(68.4576 257.68373)">Detect atom-mapped ionization</text>
+    <text style="font-size: 8px; font-family: 'cmr10', 'DejaVu Serif', serif; fill: #172033" transform="translate(68.4576 265.785455)">transitions</text>
+   </g>
+   <g id="text_17">
+    <!-- $\bullet$ -->
+    <g style="fill: #475569" transform="translate(55.9584 290.202009)">
+     <text>
+      <tspan x="0" y="-0.125" style="font-size: 11px; font-family: 'cmsy10'; fill: #475569">²</tspan>
+     </text>
+    </g>
+   </g>
+   <g id="text_18">
+    <text style="font-size: 8px; font-family: 'cmr10', 'DejaVu Serif', serif; fill: #172033" transform="translate(68.4576 288.12029)">Enumerate protonation</text>
+    <text style="font-size: 8px; font-family: 'cmr10', 'DejaVu Serif', serif; fill: #172033" transform="translate(68.4576 296.328215)">configurations, edges, and</text>
+    <text style="font-size: 8px; font-family: 'cmr10', 'DejaVu Serif', serif; fill: #172033" transform="translate(68.4576 304.52744)">tautomers</text>
+   </g>
+   <g id="text_19">
+    <!-- $\bullet$ -->
+    <g style="fill: #475569" transform="translate(55.9584 329.120889)">
+     <text>
+      <tspan x="0" y="-0.125" style="font-size: 11px; font-family: 'cmsy10'; fill: #475569">²</tspan>
+     </text>
+    </g>
+   </g>
+   <g id="text_20">
+    <text style="font-size: 8px; font-family: 'cmr10', 'DejaVu Serif', serif; fill: #172033" transform="translate(68.4576 327.03917)">Keep incomplete networks explicit</text>
+    <text style="font-size: 8px; font-family: 'cmr10', 'DejaVu Serif', serif; fill: #172033" transform="translate(68.4576 335.140895)">rather than renormalizing them</text>
+   </g>
+   <g id="patch_14">
+    <path d="M 59.5296 390.84336 
+L 197.0208 390.84336 
+Q 207.7344 390.84336 207.7344 384.85584 
+L 207.7344 359.90784 
+Q 207.7344 353.92032 197.0208 353.92032 
+L 59.5296 353.92032 
+Q 48.816 353.92032 48.816 359.90784 
+L 48.816 384.85584 
+Q 48.816 390.84336 59.5296 390.84336 
+z
+" style="fill: #ffffff; stroke: #475569; stroke-linejoin: miter"/>
+   </g>
+   <g id="text_21">
+    <text style="font-weight: 700; font-size: 7.8px; font-family: 'cmr10', 'DejaVu Serif', serif; text-anchor: start; fill: #2563eb" x="274.6944" y="118.834069" transform="rotate(-0 274.6944 118.834069)">STAGE 1 | LEARNED</text>
+   </g>
+   <g id="text_22">
+    <text style="font-weight: 700; font-size: 13px; font-family: 'cmr10', 'DejaVu Serif', serif; text-anchor: start; fill: #172033" x="274.6944" y="140.903901" transform="rotate(-0 274.6944 140.903901)">Intrinsic transition pKa</text>
+   </g>
+   <g id="text_23">
+    <text style="font-style: italic; font-size: 8.5px; font-family: 'cmr10', 'DejaVu Serif', serif; fill: #526072" transform="translate(274.6944 175.702283)">What does each mapped transition</text>
+    <text style="font-style: italic; font-size: 8.5px; font-family: 'cmr10', 'DejaVu Serif', serif; fill: #526072" transform="translate(274.6944 184.423203)">do in simple systems?</text>
+   </g>
+   <g id="line2d_2">
+    <path d="M 274.6944 205.7292 
+L 421.1136 205.7292 
+" clip-path="url(#pe87345bebf)" style="fill: none; stroke: #cbd5e1; stroke-width: 0.9; stroke-linecap: square"/>
+   </g>
+   <g id="text_24">
+    <!-- $\bullet$ -->
+    <g style="fill: #2563eb" transform="translate(274.6944 229.328889)">
+     <text>
+      <tspan x="0" y="-0.125" style="font-size: 11px; font-family: 'cmsy10'; fill: #2563eb">²</tspan>
+     </text>
+    </g>
+   </g>
+   <g id="text_25">
+    <text style="font-size: 8px; font-family: 'cmr10', 'DejaVu Serif', serif; fill: #172033" transform="translate(287.1936 227.24717)">Train on exact, single-coordinate</text>
+    <text style="font-size: 8px; font-family: 'cmr10', 'DejaVu Serif', serif; fill: #172033" transform="translate(287.1936 235.446395)">experimental transitions</text>
+   </g>
+   <g id="text_26">
+    <!-- $\bullet$ -->
+    <g style="fill: #2563eb" transform="translate(274.6944 259.765449)">
+     <text>
+      <tspan x="0" y="-0.125" style="font-size: 11px; font-family: 'cmsy10'; fill: #2563eb">²</tspan>
+     </text>
+    </g>
+   </g>
+   <g id="text_27">
+    <text style="font-size: 8px; font-family: 'cmr10', 'DejaVu Serif', serif; fill: #172033" transform="translate(287.1936 257.68373)">Use molecular, local-site,</text>
+    <text style="font-size: 8px; font-family: 'cmr10', 'DejaVu Serif', serif; fill: #172033" transform="translate(287.1936 265.891655)">geometry, and reference-prior</text>
+    <text style="font-size: 8px; font-family: 'cmr10', 'DejaVu Serif', serif; fill: #172033" transform="translate(287.1936 274.09088)">features</text>
+   </g>
+   <g id="text_28">
+    <!-- $\bullet$ -->
+    <g style="fill: #2563eb" transform="translate(274.6944 298.684329)">
+     <text>
+      <tspan x="0" y="-0.125" style="font-size: 11px; font-family: 'cmsy10'; fill: #2563eb">²</tspan>
+     </text>
+    </g>
+   </g>
+   <g id="text_29">
+    <text style="font-size: 8px; font-family: 'cmr10', 'DejaVu Serif', serif; fill: #172033" transform="translate(287.1936 296.69261)">Validate by scaffold and</text>
+    <text style="font-size: 8px; font-family: 'cmr10', 'DejaVu Serif', serif; fill: #172033" transform="translate(287.1936 304.884335)">same-label interpolation</text>
+   </g>
+   <g id="text_30">
+    <!-- $\bullet$ -->
+    <g style="fill: #2563eb" transform="translate(274.6944 329.120889)">
+     <text>
+      <tspan x="0" y="-0.125" style="font-size: 11px; font-family: 'cmsy10'; fill: #2563eb">²</tspan>
+     </text>
+    </g>
+   </g>
+   <g id="text_31">
+    <text style="font-size: 8px; font-family: 'cmr10', 'DejaVu Serif', serif; fill: #172033" transform="translate(287.1936 327.03917)">Predict every network site with</text>
+    <text style="font-size: 8px; font-family: 'cmr10', 'DejaVu Serif', serif; fill: #172033" transform="translate(287.1936 335.230895)">applicability and intervals</text>
+   </g>
+   <g id="patch_15">
+    <path d="M 278.2656 390.84336 
+L 415.7568 390.84336 
+Q 426.4704 390.84336 426.4704 384.85584 
+L 426.4704 359.90784 
+Q 426.4704 353.92032 415.7568 353.92032 
+L 278.2656 353.92032 
+Q 267.552 353.92032 267.552 359.90784 
+L 267.552 384.85584 
+Q 267.552 390.84336 278.2656 390.84336 
+z
+" style="fill: #ffffff; stroke: #2563eb; stroke-linejoin: miter"/>
+   </g>
+   <g id="text_32">
+    <text style="font-weight: 700; font-size: 7.8px; font-family: 'cmr10', 'DejaVu Serif', serif; text-anchor: start; fill: #7c3aed" x="493.4304" y="118.834069" transform="rotate(-0 493.4304 118.834069)">STAGE 2 | LEARNED + CONSTRAINED</text>
+   </g>
+   <g id="text_33">
+    <text style="font-weight: 700; font-size: 13px; font-family: 'cmr10', 'DejaVu Serif', serif; fill: #172033" transform="translate(493.4304 141.050151)">Complex-network</text>
+    <text style="font-weight: 700; font-size: 13px; font-family: 'cmr10', 'DejaVu Serif', serif; fill: #172033" transform="translate(493.4304 153.132961)">correction</text>
+   </g>
+   <g id="text_34">
+    <text style="font-style: italic; font-size: 8.5px; font-family: 'cmr10', 'DejaVu Serif', serif; fill: #526072" transform="translate(493.4304 175.702283)">How does the multisite ensemble</text>
+    <text style="font-style: italic; font-size: 8.5px; font-family: 'cmr10', 'DejaVu Serif', serif; fill: #526072" transform="translate(493.4304 184.310366)">shift the observable macro ladder?</text>
+   </g>
+   <g id="line2d_3">
+    <path d="M 493.4304 205.7292 
+L 639.8496 205.7292 
+" clip-path="url(#pe87345bebf)" style="fill: none; stroke: #cbd5e1; stroke-width: 0.9; stroke-linecap: square"/>
+   </g>
+   <g id="text_35">
+    <!-- $\bullet$ -->
+    <g style="fill: #7c3aed" transform="translate(493.4304 229.328889)">
+     <text>
+      <tspan x="0" y="-0.125" style="font-size: 11px; font-family: 'cmsy10'; fill: #7c3aed">²</tspan>
+     </text>
+    </g>
+   </g>
+   <g id="text_36">
+    <text style="font-size: 8px; font-family: 'cmr10', 'DejaVu Serif', serif; fill: #172033" transform="translate(505.9296 227.24717)">Learn residuals from the blind</text>
+    <text style="font-size: 8px; font-family: 'cmr10', 'DejaVu Serif', serif; fill: #172033" transform="translate(505.9296 235.455095)">Stage 1 network baseline</text>
+   </g>
+   <g id="text_37">
+    <!-- $\bullet$ -->
+    <g style="fill: #7c3aed" transform="translate(493.4304 259.765449)">
+     <text>
+      <tspan x="0" y="-0.125" style="font-size: 11px; font-family: 'cmsy10'; fill: #7c3aed">²</tspan>
+     </text>
+    </g>
+   </g>
+   <g id="text_38">
+    <text style="font-size: 8px; font-family: 'cmr10', 'DejaVu Serif', serif; fill: #172033" transform="translate(505.9296 257.77373)">Gate sparse families and preserve</text>
+    <text style="font-size: 8px; font-family: 'cmr10', 'DejaVu Serif', serif; fill: #172033" transform="translate(505.9296 265.981655)">exact Stage 1 fallbacks</text>
+   </g>
+   <g id="text_39">
+    <!-- $\bullet$ -->
+    <g style="fill: #7c3aed" transform="translate(493.4304 290.202009)">
+     <text>
+      <tspan x="0" y="-0.125" style="font-size: 11px; font-family: 'cmsy10'; fill: #7c3aed">²</tspan>
+     </text>
+    </g>
+   </g>
+   <g id="text_40">
+    <text style="font-size: 8px; font-family: 'cmr10', 'DejaVu Serif', serif; fill: #172033" transform="translate(505.9296 288.03404)">Project successive macroscopic</text>
+    <text style="font-size: 8px; font-family: 'cmr10', 'DejaVu Serif', serif; fill: #172033" transform="translate(505.9296 296.225765)">pKas into physical order</text>
+   </g>
+   <g id="text_41">
+    <!-- $\bullet$ -->
+    <g style="fill: #7c3aed" transform="translate(493.4304 320.638569)">
+     <text>
+      <tspan x="0" y="-0.125" style="font-size: 11px; font-family: 'cmsy10'; fill: #7c3aed">²</tspan>
+     </text>
+    </g>
+   </g>
+   <g id="text_42">
+    <text style="font-size: 8px; font-family: 'cmr10', 'DejaVu Serif', serif; fill: #172033" transform="translate(505.9296 318.55685)">Fit regularized one-body and</text>
+    <text style="font-size: 8px; font-family: 'cmr10', 'DejaVu Serif', serif; fill: #172033" transform="translate(505.9296 326.756075)">symmetric pair terms</text>
+   </g>
+   <g id="patch_16">
+    <path d="M 497.0016 390.84336 
+L 634.4928 390.84336 
+Q 645.2064 390.84336 645.2064 384.85584 
+L 645.2064 359.90784 
+Q 645.2064 353.92032 634.4928 353.92032 
+L 497.0016 353.92032 
+Q 486.288 353.92032 486.288 359.90784 
+L 486.288 384.85584 
+Q 486.288 390.84336 497.0016 390.84336 
+z
+" style="fill: #ffffff; stroke: #7c3aed; stroke-linejoin: miter"/>
+   </g>
+   <g id="text_43">
+    <text style="font-weight: 700; font-size: 7.8px; font-family: 'cmr10', 'DejaVu Serif', serif; text-anchor: start; fill: #15803d" x="712.1664" y="118.834069" transform="rotate(-0 712.1664 118.834069)">STAGE 3 | PHYSICS + HEURISTIC</text>
+   </g>
+   <g id="text_44">
+    <text style="font-weight: 700; font-size: 13px; font-family: 'cmr10', 'DejaVu Serif', serif; fill: #172033" transform="translate(712.1664 141.050151)">Complete state at</text>
+    <text style="font-weight: 700; font-size: 13px; font-family: 'cmr10', 'DejaVu Serif', serif; fill: #172033" transform="translate(712.1664 153.132961)">requested pH</text>
+   </g>
+   <g id="text_45">
+    <text style="font-style: italic; font-size: 8.5px; font-family: 'cmr10', 'DejaVu Serif', serif; fill: #526072" transform="translate(712.1664 175.797908)">Which full configuration is</text>
+    <text style="font-style: italic; font-size: 8.5px; font-family: 'cmr10', 'DejaVu Serif', serif; fill: #526072" transform="translate(712.1664 184.622422)">populated, and how confident is</text>
+    <text style="font-style: italic; font-size: 8.5px; font-family: 'cmr10', 'DejaVu Serif', serif; fill: #526072" transform="translate(712.1664 193.230505)">it?</text>
+   </g>
+   <g id="line2d_4">
+    <path d="M 712.1664 205.7292 
+L 858.5856 205.7292 
+" clip-path="url(#pe87345bebf)" style="fill: none; stroke: #cbd5e1; stroke-width: 0.9; stroke-linecap: square"/>
+   </g>
+   <g id="text_46">
+    <!-- $\bullet$ -->
+    <g style="fill: #15803d" transform="translate(712.1664 229.328889)">
+     <text>
+      <tspan x="0" y="-0.125" style="font-size: 11px; font-family: 'cmsy10'; fill: #15803d">²</tspan>
+     </text>
+    </g>
+   </g>
+   <g id="text_47">
+    <text style="font-size: 8px; font-family: 'cmr10', 'DejaVu Serif', serif; fill: #172033" transform="translate(724.6656 227.33717)">Normalize coupled configuration</text>
+    <text style="font-size: 8px; font-family: 'cmr10', 'DejaVu Serif', serif; fill: #172033" transform="translate(724.6656 235.536395)">populations at the requested pH</text>
+   </g>
+   <g id="text_48">
+    <!-- $\bullet$ -->
+    <g style="fill: #15803d" transform="translate(712.1664 259.765449)">
+     <text>
+      <tspan x="0" y="-0.125" style="font-size: 11px; font-family: 'cmsy10'; fill: #15803d">²</tspan>
+     </text>
+    </g>
+   </g>
+   <g id="text_49">
+    <text style="font-size: 8px; font-family: 'cmr10', 'DejaVu Serif', serif; fill: #172033" transform="translate(724.6656 257.68373)">Marginalize each site and</text>
+    <text style="font-size: 8px; font-family: 'cmr10', 'DejaVu Serif', serif; fill: #172033" transform="translate(724.6656 265.882955)">propagate pKa uncertainty</text>
+   </g>
+   <g id="text_50">
+    <!-- $\bullet$ -->
+    <g style="fill: #15803d" transform="translate(712.1664 290.202009)">
+     <text>
+      <tspan x="0" y="-0.125" style="font-size: 11px; font-family: 'cmsy10'; fill: #15803d">²</tspan>
+     </text>
+    </g>
+   </g>
+   <g id="text_51">
+    <text style="font-size: 8px; font-family: 'cmr10', 'DejaVu Serif', serif; fill: #172033" transform="translate(724.6656 288.21029)">Select the thermodynamically</text>
+    <text style="font-size: 8px; font-family: 'cmr10', 'DejaVu Serif', serif; fill: #172033" transform="translate(724.6656 296.508215)">dominant protonation configuration</text>
+   </g>
+   <g id="text_52">
+    <!-- $\bullet$ -->
+    <g style="fill: #15803d" transform="translate(712.1664 320.638569)">
+     <text>
+      <tspan x="0" y="-0.125" style="font-size: 11px; font-family: 'cmsy10'; fill: #15803d">²</tspan>
+     </text>
+    </g>
+   </g>
+   <g id="text_53">
+    <text style="font-size: 8px; font-family: 'cmr10', 'DejaVu Serif', serif; fill: #172033" transform="translate(724.6656 318.55685)">Rank tautomers only inside that</text>
+    <text style="font-size: 8px; font-family: 'cmr10', 'DejaVu Serif', serif; fill: #172033" transform="translate(724.6656 326.854775)">fixed configuration</text>
+   </g>
+   <g id="patch_17">
+    <path d="M 715.7376 390.84336 
+L 853.2288 390.84336 
+Q 863.9424 390.84336 863.9424 384.85584 
+L 863.9424 359.90784 
+Q 863.9424 353.92032 853.2288 353.92032 
+L 715.7376 353.92032 
+Q 705.024 353.92032 705.024 359.90784 
+L 705.024 384.85584 
+Q 705.024 390.84336 715.7376 390.84336 
+z
+" style="fill: #ffffff; stroke: #15803d; stroke-linejoin: miter"/>
+   </g>
+   <g id="text_54">
+    <text style="font-weight: 700; font-size: 8.1px; font-family: 'cmr10', 'DejaVu Serif', serif; text-anchor: middle; fill: #475569" x="127.3824" y="374.40684" transform="rotate(-0 127.3824 374.40684)">Molecule-network dataset</text>
+   </g>
+   <g id="text_55">
+    <!-- Intrinsic site pKas $\rightarrow$ -->
+    <g style="fill: #2563eb" transform="translate(306.7119 370.630183)">
+     <text>
+      <tspan x="0" y="-0.46875" style="font-size: 8.1px; font-family: 'cmr10'; fill: #2563eb">I</tspan>
+      <tspan x="2.920547" y="-0.46875" style="font-size: 8.1px; font-family: 'cmr10'; fill: #2563eb">n</tspan>
+      <tspan x="7.414001" y="-0.46875" style="font-size: 8.1px; font-family: 'cmr10'; fill: #2563eb">t</tspan>
+      <tspan x="10.555862" y="-0.46875" style="font-size: 8.1px; font-family: 'cmr10'; fill: #2563eb">r</tspan>
+      <tspan x="13.721436" y="-0.46875" style="font-size: 8.1px; font-family: 'cmr10'; fill: #2563eb">i</tspan>
+      <tspan x="15.962234" y="-0.46875" style="font-size: 8.1px; font-family: 'cmr10'; fill: #2563eb">n</tspan>
+      <tspan x="20.455688" y="-0.46875" style="font-size: 8.1px; font-family: 'cmr10'; fill: #2563eb">s</tspan>
+      <tspan x="23.644974" y="-0.46875" style="font-size: 8.1px; font-family: 'cmr10'; fill: #2563eb">i</tspan>
+      <tspan x="25.885773" y="-0.46875" style="font-size: 8.1px; font-family: 'cmr10'; fill: #2563eb">c</tspan>
+      <tspan x="29.478165" y="-0.46875" style="font-size: 8.1px; font-family: 'cmr10'; fill: #2563eb"> </tspan>
+      <tspan x="32.173447" y="-0.46875" style="font-size: 8.1px; font-family: 'cmr10'; fill: #2563eb">s</tspan>
+      <tspan x="35.362732" y="-0.46875" style="font-size: 8.1px; font-family: 'cmr10'; fill: #2563eb">i</tspan>
+      <tspan x="37.603531" y="-0.46875" style="font-size: 8.1px; font-family: 'cmr10'; fill: #2563eb">t</tspan>
+      <tspan x="40.745392" y="-0.46875" style="font-size: 8.1px; font-family: 'cmr10'; fill: #2563eb">e</tspan>
+      <tspan x="44.337784" y="-0.46875" style="font-size: 8.1px; font-family: 'cmr10'; fill: #2563eb"> </tspan>
+      <tspan x="47.033066" y="-0.46875" style="font-size: 8.1px; font-family: 'cmr10'; fill: #2563eb">p</tspan>
+      <tspan x="51.52652" y="-0.46875" style="font-size: 8.1px; font-family: 'cmr10'; fill: #2563eb">K</tspan>
+      <tspan x="57.814194" y="-0.46875" style="font-size: 8.1px; font-family: 'cmr10'; fill: #2563eb">a</tspan>
+      <tspan x="61.861069" y="-0.46875" style="font-size: 8.1px; font-family: 'cmr10'; fill: #2563eb">s</tspan>
+      <tspan x="65.050354" y="-0.46875" style="font-size: 8.1px; font-family: 'cmr10'; fill: #2563eb"> </tspan>
+      <tspan x="69.166785" y="-0.46875" style="font-size: 8.1px; font-family: 'cmsy10'; fill: #2563eb">!</tspan>
+     </text>
+    </g>
+    <text style="font-weight: 700; font-size: 8.1px; font-family: 'cmr10', 'DejaVu Serif', serif; fill: #2563eb" transform="translate(312.603384 378.151856)">blind macro ladder</text>
+   </g>
+   <g id="text_56">
+    <!-- Cycle-consistent $b_i / J_{ij}$ -->
+    <g style="fill: #7c3aed" transform="translate(525.1644 370.337824)">
+     <text>
+      <tspan x="0" y="-0.921875" style="font-size: 8.1px; font-family: 'cmr10'; fill: #7c3aed">C</tspan>
+      <tspan x="5.845047" y="-0.921875" style="font-size: 8.1px; font-family: 'cmr10'; fill: #7c3aed">y</tspan>
+      <tspan x="10.109283" y="-0.921875" style="font-size: 8.1px; font-family: 'cmr10'; fill: #7c3aed">c</tspan>
+      <tspan x="13.701675" y="-0.921875" style="font-size: 8.1px; font-family: 'cmr10'; fill: #7c3aed">l</tspan>
+      <tspan x="15.942474" y="-0.921875" style="font-size: 8.1px; font-family: 'cmr10'; fill: #7c3aed">e</tspan>
+      <tspan x="19.534866" y="-0.921875" style="font-size: 8.1px; font-family: 'cmr10'; fill: #7c3aed">-</tspan>
+      <tspan x="22.230148" y="-0.921875" style="font-size: 8.1px; font-family: 'cmr10'; fill: #7c3aed">c</tspan>
+      <tspan x="25.82254" y="-0.921875" style="font-size: 8.1px; font-family: 'cmr10'; fill: #7c3aed">o</tspan>
+      <tspan x="29.869415" y="-0.921875" style="font-size: 8.1px; font-family: 'cmr10'; fill: #7c3aed">n</tspan>
+      <tspan x="34.362869" y="-0.921875" style="font-size: 8.1px; font-family: 'cmr10'; fill: #7c3aed">s</tspan>
+      <tspan x="37.552155" y="-0.921875" style="font-size: 8.1px; font-family: 'cmr10'; fill: #7c3aed">i</tspan>
+      <tspan x="39.792953" y="-0.921875" style="font-size: 8.1px; font-family: 'cmr10'; fill: #7c3aed">s</tspan>
+      <tspan x="42.982239" y="-0.921875" style="font-size: 8.1px; font-family: 'cmr10'; fill: #7c3aed">t</tspan>
+      <tspan x="46.1241" y="-0.921875" style="font-size: 8.1px; font-family: 'cmr10'; fill: #7c3aed">e</tspan>
+      <tspan x="49.716492" y="-0.921875" style="font-size: 8.1px; font-family: 'cmr10'; fill: #7c3aed">n</tspan>
+      <tspan x="54.209946" y="-0.921875" style="font-size: 8.1px; font-family: 'cmr10'; fill: #7c3aed">t</tspan>
+      <tspan x="57.351807" y="-0.921875" style="font-size: 8.1px; font-family: 'cmr10'; fill: #7c3aed"> </tspan>
+      <tspan x="60.047089" y="-0.921875" style="font-size: 8.1px; font-family: 'cmmi10'; fill: #7c3aed">b</tspan>
+      <tspan x="65.98781" y="-0.921875" style="font-size: 8.1px; font-family: 'cmmi10'; fill: #7c3aed">=</tspan>
+      <tspan x="70.034685" y="-0.921875" style="font-size: 8.1px; font-family: 'cmmi10'; fill: #7c3aed">J</tspan>
+      <tspan x="63.52092" y="0.455631" style="font-size: 5.67px; font-family: 'cmmi10'; fill: #7c3aed">i</tspan>
+      <tspan x="74.520235" y="0.455631" style="font-size: 5.67px; font-family: 'cmmi10'; fill: #7c3aed">i</tspan>
+      <tspan x="76.47056" y="0.455631" style="font-size: 5.67px; font-family: 'cmmi10'; fill: #7c3aed">j</tspan>
+     </text>
+    </g>
+    <text style="font-weight: 700; font-size: 8.1px; font-family: 'cmr10', 'DejaVu Serif', serif; fill: #7c3aed" transform="translate(541.353009 378.831497)">energy model</text>
+   </g>
+   <g id="text_57">
+    <text style="font-weight: 700; font-size: 8.1px; font-family: 'cmr10', 'DejaVu Serif', serif; fill: #15803d" transform="translate(729.698822 370.670683)">Mapped microstate + site and</text>
+    <text style="font-weight: 700; font-size: 8.1px; font-family: 'cmr10', 'DejaVu Serif', serif; fill: #15803d" transform="translate(755.684002 378.142997)">tautomer tables</text>
+   </g>
+   <g id="patch_18">
+    <path d="M 224.019826 245.646 
+Q 234.96627 245.646 243.676646 245.646 
+" style="fill: none; stroke: #64748b; stroke-width: 2; stroke-linecap: round"/>
+    <path d="M 237.276646 242.446 
+L 243.676646 245.646 
+L 237.276646 248.846 
+z
+" style="fill: #64748b; stroke: #64748b; stroke-width: 2; stroke-linecap: round"/>
+   </g>
+   <g id="patch_19">
+    <path d="M 442.755826 245.646 
+Q 453.70227 245.646 462.412646 245.646 
+" style="fill: none; stroke: #64748b; stroke-width: 2; stroke-linecap: round"/>
+    <path d="M 456.012646 242.446 
+L 462.412646 245.646 
+L 456.012646 248.846 
+z
+" style="fill: #64748b; stroke: #64748b; stroke-width: 2; stroke-linecap: round"/>
+   </g>
+   <g id="patch_20">
+    <path d="M 661.491826 245.646 
+Q 672.43827 245.646 681.148646 245.646 
+" style="fill: none; stroke: #64748b; stroke-width: 2; stroke-linecap: round"/>
+    <path d="M 674.748646 242.446 
+L 681.148646 245.646 
+L 674.748646 248.846 
+z
+" style="fill: #64748b; stroke: #64748b; stroke-width: 2; stroke-linecap: round"/>
+   </g>
+  </g>
+ </g>
+ <defs>
+  <clipPath id="pe87345bebf">
+   <rect x="8.64" y="8.64" width="892.8" height="498.96"/>
+  </clipPath>
+ </defs>
+</svg>

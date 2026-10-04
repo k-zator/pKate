@@ -1,0 +1,3 @@
+scope,source_file,assay_id,record_index,pka_value,quarantine_reason,quarantine_detail,evidence_url
+assay,FIXED_chembl26.sdf,CHEMBL634815,,,non_molecular_pka_endpoint,"Publication assay reports pKa of the leaving group ROH; values must not be assigned to the phenol in the complete molecule.",https://www.ebi.ac.uk/chembl/api/data/activity.json?assay_chembl_id=CHEMBL634815&limit=30
+assay,FIXED_chembl26.sdf,CHEMBL3283143,,,endpoint_miscurated_as_pka,"Distribution-coefficient study values are inconsistent with molecular pKa and appear to have been imported from the pH 6.8 distribution endpoint.",https://www.ebi.ac.uk/chembl/api/data/activity.json?assay_chembl_id=CHEMBL3283143&limit=20

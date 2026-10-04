@@ -1,0 +1,49 @@
+site_label,site_family,reference_pka,reference_uncertainty,transition_definition,provenance,enabled
+primary_alcohol,alcohol_alkoxide,16.0,2.0,ROH_to_RO_minus,project-curated textbook anchor; literature_compilation records 76-91,true
+secondary_alcohol,alcohol_alkoxide,17.0,2.5,ROH_to_RO_minus,project-curated textbook anchor; literature_compilation records 79-80,true
+tertiary_alcohol,alcohol_alkoxide,18.0,2.5,ROH_to_RO_minus,project-curated textbook anchor; literature_compilation record 81,true
+alkoxide,alcohol_alkoxide,16.0,2.5,ROH_to_RO_minus,conjugate-member prior inherited from neutral alcohol acidity,true
+protonated_alcohol,alcohol_oxonium,-2.0,2.5,ROH2_plus_to_ROH,project chemistry prior; deliberately distinct from neutral alcohol acidity,true
+pyrrole,amine,-2.5,2.5,C_protonated_pyrrolium_to_pyrrole,project-curated anchors; literature_compilation records 68-71,true
+pyrrolium,amine,-2.5,2.5,C_protonated_pyrrolium_to_pyrrole,conjugate-member prior inherited from pyrrole,true
+pyrazole,amine,2.5,2.0,pyrazolium_to_pyrazole,literature_compilation record 52,true
+pyrazole_basicity,pyrazole_basicity,2.49,1.5,pyrazolium_to_neutral_pyrazole,aqueous parent anchor; supported by DOI 10.1016/0022-1902(70)80501-2,true
+pyrazolium,pyrazole_basicity,2.49,1.5,pyrazolium_to_neutral_pyrazole,conjugate-member prior,true
+pyrazole_acidity,pyrazole_acidity,14.21,2.5,neutral_pyrazole_to_pyrazolate,parent anchor with broad substituted-pyrazole allowance; supported by DOI 10.1016/0040-4020(67)85151-2,true
+pyrazolate,pyrazole_acidity,14.21,2.5,neutral_pyrazole_to_pyrazolate,conjugate-member prior with broad substitution allowance,true
+pyridine,amine,5.3,2.0,pyridinium_to_pyridine,literature_compilation record 53,true
+pyridinium,amine,5.3,2.0,pyridinium_to_pyridine,conjugate-member prior,true
+quinoline,amine,4.8,2.0,quinolinium_to_quinoline,literature_compilation record 55,true
+quinolinium,amine,4.8,2.0,quinolinium_to_quinoline,conjugate-member prior,true
+imidazole,amine,7.0,2.0,imidazolium_to_imidazole,literature_compilation record 48,true
+imidazole_basicity,imidazole_basicity,7.0,1.5,imidazolium_to_neutral_imidazole,aqueous parent anchor; supported by DOI 10.1016/0039-9140(86)80225-9,true
+imidazolium,imidazole_basicity,7.0,1.5,imidazolium_to_neutral_imidazole,conjugate-member prior,true
+imidazole_acidity,imidazole_acidity,14.2,2.5,neutral_imidazole_to_imidazolate,parent anchor with broad substituted-imidazole allowance; supported by DOI 10.1016/0040-4020(67)85151-2,true
+imidazolate,imidazole_acidity,14.2,2.5,neutral_imidazole_to_imidazolate,conjugate-member prior with broad substitution allowance,true
+aniline,amine,4.6,2.5,anilinium_to_aniline,literature_compilation record 36,true
+primary_amine,amine,10.5,2.5,primary_ammonium_to_primary_amine,literature_compilation records 11-17,true
+primary_ammonium,amine,10.5,2.5,primary_ammonium_to_primary_amine,conjugate-member prior,true
+secondary_amine,amine,10.8,2.5,secondary_ammonium_to_secondary_amine,literature_compilation records 18-24,true
+secondary_ammonium,amine,10.8,2.5,secondary_ammonium_to_secondary_amine,conjugate-member prior,true
+aziridine,aziridine,8.04,0.75,aziridinium_to_aziridine,IUPAC aqueous conjugate-acid anchor for parent aziridine; PubChem CID 9033,true
+aziridinium,aziridine,8.04,0.75,aziridinium_to_aziridine,conjugate-member prior,true
+tertiary_amine,amine,9.8,3.0,tertiary_ammonium_to_tertiary_amine,literature_compilation records 25-35,true
+tertiary_ammonium,amine,9.8,3.0,tertiary_ammonium_to_tertiary_amine,conjugate-member prior,true
+carboxylic_acid,carboxyl,4.5,2.0,RCOOH_to_RCOO_minus,literature_compilation records 101-140,true
+carboxylate,carboxyl,4.5,2.0,RCOOH_to_RCOO_minus,conjugate-member prior,true
+phenol,phenol_phenolate,10.0,2.0,ArOH_to_ArO_minus,literature_compilation records 92-100,true
+phenolate,phenol_phenolate,10.0,2.0,ArOH_to_ArO_minus,conjugate-member prior,true
+guanidine,guanidine_like,13.6,2.0,guanidinium_to_guanidine,literature_compilation records 66-67,true
+guanidinium,guanidine_like,13.6,2.0,guanidinium_to_guanidine,conjugate-member prior,true
+thiol,thiol_thiolate,10.5,2.5,RSH_to_RS_minus,literature_compilation records 141-145,true
+thiolate,thiol_thiolate,10.5,2.5,RSH_to_RS_minus,conjugate-member prior,true
+123triazole_acidity,123triazole_acidity,9.3,1.5,neutral_123triazole_to_123triazolate,user-curated aqueous ambient parent anchor with class-level substitution allowance; supported by DOI 10.1021/ja00221a001,true
+123triazolate,123triazole_acidity,9.3,1.5,neutral_123triazole_to_123triazolate,conjugate-member prior with class-level substitution allowance,true
+124triazole_basicity,124triazole_basicity,2.3,1.0,124triazolium_to_neutral_124triazole,user-curated aqueous ambient parent anchor with class-level substitution allowance; supported by DOI 10.1021/acs.analchem.4c03596,true
+124triazolium,124triazole_basicity,2.3,1.0,124triazolium_to_neutral_124triazole,conjugate-member prior with class-level substitution allowance,true
+124triazole_acidity,124triazole_acidity,9.8,1.5,neutral_124triazole_to_124triazolate,user-curated aqueous ambient range midpoint 9.4-10.2 with class-level substitution allowance; supported by DOI 10.1021/ja00221a001,true
+124triazolate,124triazole_acidity,9.8,1.5,neutral_124triazole_to_124triazolate,conjugate-member prior with class-level substitution allowance,true
+indazole_basicity,indazole_basicity,1.0,1.0,indazolium_to_neutral_indazole,user-curated aqueous ambient parent anchor with class-level substitution allowance; supported by DOI 10.1021/j100092a035,true
+indazolium,indazole_basicity,1.0,1.0,indazolium_to_neutral_indazole,conjugate-member prior with class-level substitution allowance,true
+indazole_acidity,indazole_acidity,13.9,1.5,neutral_indazole_to_indazolate,user-curated aqueous ambient parent anchor with class-level substitution allowance; supported by DOI 10.1021/j100092a035,true
+indazolate,indazole_acidity,13.9,1.5,neutral_indazole_to_indazolate,conjugate-member prior with class-level substitution allowance,true
