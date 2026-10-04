@@ -20,7 +20,9 @@ jobs:
     timeout-minutes: 30
     env:
       MPLBACKEND: Agg
-      MPLCONFIGDIR: ${{ runner.temp }}/matplotlib
+      # The runner context is unavailable while job-level env is evaluated.
+      # A fixed writable path keeps Matplotlib cache files out of the checkout.
+      MPLCONFIGDIR: /tmp/pkate-matplotlib
 
     steps:
       - name: Check out source
@@ -41,9 +43,10 @@ jobs:
       - name: Run unit tests with coverage
         run: python scripts/run_unit_tests.py --coverage --html
 
-      - name: Validate documentation figure
+      - name: Validate documentation figures
         run: |
           python scripts/render_pipeline_overview.py --output-dir "${RUNNER_TEMP}/pipeline-figure"
+          python scripts/render_prediction_example.py --output-dir "${RUNNER_TEMP}/prediction-figure"
 
       - name: Upload HTML coverage report
         if: always()
@@ -59,6 +62,7 @@ jobs:
         uses: codecov/codecov-action@v5
         with:
           use_oidc: true
-          files: coverage.xml
+          files: ./coverage.xml
           disable_search: true
-          fail_ci_if_error: false
+          fail_ci_if_error: true
+          verbose: true

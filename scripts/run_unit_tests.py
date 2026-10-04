@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the fast, data-independent protonator unit-test and coverage suite.
+"""Run the fast, data-independent pKₐte unit-test and coverage suite.
 
 The repository also contains slow degradation, retraining, and historical
 pipeline tests. Those need local data/model artifacts and are intentionally

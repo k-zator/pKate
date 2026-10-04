@@ -91,7 +91,7 @@ def api_get_json(url: str, timeout: float, max_retries: int, sleep_seconds: floa
     attempt = 0
     while True:
         attempt += 1
-        req = Request(url, headers={"Accept": "application/json", "User-Agent": "protonator-chembl-pka/1.0"})
+        req = Request(url, headers={"Accept": "application/json", "User-Agent": "pkate-chembl-pka/1.0"})
         try:
             with urlopen(req, timeout=timeout) as response:
                 body = response.read().decode("utf-8")

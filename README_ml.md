@@ -2,7 +2,7 @@
 
 This scaffold keeps SMARTS as candidate enumeration and trains ML to rank protonation site/state in complex molecules.
 
-![Canonical protonator pipeline overview](docs/canonical_pipeline_overview.svg)
+![Canonical pKₐte pipeline overview](docs/canonical_pipeline_overview.svg)
 
 See [`scripts/CANONICAL_PIPELINE_GUIDE.md`](scripts/CANONICAL_PIPELINE_GUIDE.md)
 for the detailed scientific and operational explanation.

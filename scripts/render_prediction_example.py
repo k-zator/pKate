@@ -33,7 +33,9 @@ matplotlib.rcParams.update({
     "font.serif": ["cmr10", "DejaVu Serif"],
     "mathtext.fontset": "cm",
     "axes.formatter.use_mathtext": True,
-    "svg.fonttype": "none",
+    # Embed glyph outlines so browsers cannot reinterpret Computer Modern's
+    # symbol-font code points (for example, turning a dot into a currency sign).
+    "svg.fonttype": "path",
     "svg.hashsalt": "pkate-prediction-example-v1",
 })
 
@@ -555,6 +557,14 @@ def render(output_dir: str, basename: str, formats: Iterable[str], dpi: int) -> 
             pad_inches=0.12,
             metadata=metadata,
         )
+        if image_format == "svg":
+            # Matplotlib leaves spaces at the end of multiline path data.
+            # Normalizing them keeps generated assets friendly to git diff --check.
+            svg = path.read_text(encoding="utf-8")
+            path.write_text(
+                "\n".join(line.rstrip() for line in svg.splitlines()) + "\n",
+                encoding="utf-8",
+            )
         written.append(path)
     plt.close(figure)
     return written

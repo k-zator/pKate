@@ -19,7 +19,7 @@ from typing import Iterable, Sequence
 # containers and read-only CI jobs.
 os.environ.setdefault(
     "MPLCONFIGDIR",
-    str(Path(tempfile.gettempdir()) / "protonator-matplotlib"),
+    str(Path(tempfile.gettempdir()) / "pkate-matplotlib"),
 )
 
 import matplotlib  # noqa: E402
@@ -30,8 +30,10 @@ matplotlib.rcParams.update({
     "font.serif": ["cmr10", "DejaVu Serif"],
     "mathtext.fontset": "cm",
     "axes.formatter.use_mathtext": True,
-    "svg.fonttype": "none",
-    "svg.hashsalt": "protonator-canonical-pipeline-v1",
+    # Embed glyph outlines so browsers cannot reinterpret Computer Modern's
+    # symbol-font code points (for example, turning a dot into a currency sign).
+    "svg.fonttype": "path",
+    "svg.hashsalt": "pkate-canonical-pipeline-v1",
 })
 
 import matplotlib.pyplot as plt  # noqa: E402
@@ -465,6 +467,14 @@ def render(output_dir: str, basename: str, formats: Iterable[str], dpi: int) -> 
             pad_inches=0.12,
             metadata=metadata,
         )
+        if image_format == "svg":
+            # Matplotlib leaves spaces at the end of multiline path data.
+            # Normalizing them keeps generated assets friendly to git diff --check.
+            svg = path.read_text(encoding="utf-8")
+            path.write_text(
+                "\n".join(line.rstrip() for line in svg.splitlines()) + "\n",
+                encoding="utf-8",
+            )
         written.append(path)
     plt.close(figure)
     return written
