@@ -2,8 +2,8 @@
   <img src="pKate_logo.png" width="240" alt="pKₐte — protonation-state prediction">
 </h1>
 
-[![tests](https://github.com/k-zator/pKate/actions/workflows/tests.yml/badge.svg)](https://github.com/k-zator/pKate/actions/workflows/tests.yml)
-[![coverage](https://codecov.io/gh/k-zator/pKate/branch/main/graph/badge.svg)](https://app.codecov.io/github/k-zator/pKate)
+[![tests](https://github.com/k-zator/pKate/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/k-zator/pKate/actions/workflows/tests.yml?query=branch%3Amain)
+[![coverage](https://codecov.io/gh/k-zator/pKate/branch/main/graph/badge.svg?precision=1)](https://app.codecov.io/github/k-zator/pKate)
 [![Python 3.11](https://img.shields.io/badge/python-3.11-3776AB.svg?logo=python&logoColor=white)](environment.yml)
 [![license: PolyForm Noncommercial 1.0.0](https://img.shields.io/badge/license-PolyForm%20Noncommercial%201.0.0-blue.svg)](LICENSE)
 
