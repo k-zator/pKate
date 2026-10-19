@@ -1,3 +1,4 @@
+import csv
 import os
 from typing import List, Tuple, Optional
 
@@ -61,6 +62,23 @@ def _dependency_paths(site_overrides_path: Optional[str] = None) -> List[str]:
     return paths
 
 
+def _assignments_are_experimental_only(path: str) -> bool:
+    """Return whether an existing curated assignment file is provenance-safe."""
+    try:
+        with open(path, "r", encoding="utf-8", newline="") as handle:
+            reader = csv.DictReader(handle)
+            if not reader.fieldnames or "pka_source_method" not in reader.fieldnames:
+                return False
+            saw_row = False
+            for row in reader:
+                saw_row = True
+                if str(row.get("pka_source_method", "")).strip().lower() != "experimental":
+                    return False
+            return saw_row
+    except (OSError, csv.Error):
+        return False
+
+
 def ensure_curated_training_data(
     assignments_path: str = DEFAULT_CURATED_ASSIGNMENTS_PATH,
     summary_path: str = DEFAULT_CURATED_SUMMARY_PATH,
@@ -76,7 +94,10 @@ def ensure_curated_training_data(
     if assignments_exists and summary_exists:
         outputs_mtime = min(os.path.getmtime(assignments_path), os.path.getmtime(summary_path))
         newest_input_mtime = _latest_mtime(raw_paths + dependency_paths)
-        if outputs_mtime >= newest_input_mtime:
+        if (
+            outputs_mtime >= newest_input_mtime
+            and _assignments_are_experimental_only(assignments_path)
+        ):
             return assignments_path, summary_path
 
     from functional_group_pka_analysis import build_functional_group_table, build_summary_table, training_group_label
@@ -91,6 +112,17 @@ def ensure_curated_training_data(
         allow_epik=False,
         overrides_path=site_overrides_path,
     )
+
+    if "pka_source_method" not in df.columns:
+        raise ValueError(
+            "Cannot certify curated training data as experimental-only: "
+            "pka_source_method is missing"
+        )
+    df = df[
+        df["pka_source_method"].astype(str).str.strip().str.lower().eq("experimental")
+    ].copy()
+    if df.empty:
+        raise ValueError("No experimental pKa measurements remain after provenance filtering")
 
     strict_df = df[
         df["single_group_strict"]

@@ -158,3 +158,44 @@ def test_empirical_calibration_reports_probability_for_selected_pka_side():
     assert acid["family_rows"] == 4
     assert acid["empirical_macro_pka_interval_90_low"] < 10.0
     assert acid["empirical_macro_pka_interval_90_high"] > 10.0
+
+
+def test_empirical_calibration_is_neutral_at_symmetric_pka_boundary():
+    acid = calibrate_site_call(
+        _calibration_fixture(),
+        source_name="stage1_single_site",
+        site_label="primary_amine",
+        site_family="amine",
+        predicted_pka=7.4,
+        ph=7.4,
+        predicted_site_form="acid_form",
+    )
+    base = calibrate_site_call(
+        _calibration_fixture(),
+        source_name="stage1_single_site",
+        site_label="primary_amine",
+        site_family="amine",
+        predicted_pka=7.4,
+        ph=7.4,
+        predicted_site_form="base_form",
+    )
+    assert acid["probability_observed_pka_at_or_above_ph"] == pytest.approx(0.5)
+    assert acid["predicted_site_form_pka_side_confidence"] == pytest.approx(0.5)
+    assert base["predicted_site_form_pka_side_confidence"] == pytest.approx(0.5)
+
+
+def test_empirical_acid_and_base_confidences_are_complements():
+    kwargs = {
+        "calibration": _calibration_fixture(),
+        "source_name": "stage1_single_site",
+        "site_label": "primary_amine",
+        "site_family": "amine",
+        "predicted_pka": 7.7,
+        "ph": 7.4,
+    }
+    acid = calibrate_site_call(**kwargs, predicted_site_form="acid_form")
+    base = calibrate_site_call(**kwargs, predicted_site_form="base_form")
+    assert (
+        acid["predicted_site_form_pka_side_confidence"]
+        + base["predicted_site_form_pka_side_confidence"]
+    ) == pytest.approx(1.0)

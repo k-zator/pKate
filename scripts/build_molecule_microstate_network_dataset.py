@@ -605,7 +605,11 @@ def build_molecule_dataset(
         })
 
     print(f"molecule_groups={len(work_items)} stage1_all_site_tasks={len(stage1_tasks)}")
-    stage1_predictions = predict_stage1_tasks(stage1_tasks, stage1_model_path, stage1_workers)
+    stage1_predictions = (
+        predict_stage1_tasks(stage1_tasks, stage1_model_path, stage1_workers)
+        if stage1_tasks
+        else {}
+    )
 
     rows = []
     for item in work_items:
@@ -754,7 +758,11 @@ def build_molecule_dataset(
             })
 
         predicted_only = len(network["sites"]) - measured_site_count
-        if network["protonation_state_enumeration_truncated"] or network["incomplete_site_ids"]:
+        if (
+            len(site_pka_map) != len(network["sites"])
+            or network["protonation_state_enumeration_truncated"]
+            or network["incomplete_site_ids"]
+        ):
             confidence = "limited"
         elif predicted_only:
             confidence = "mixed_experimental_and_stage1"
@@ -814,7 +822,9 @@ def build_molecule_dataset(
             "epik_values_used": False,
         })
 
-    dataset = pd.DataFrame(rows).sort_values("molecule_id").reset_index(drop=True)
+    dataset = pd.DataFrame(rows)
+    if not dataset.empty:
+        dataset = dataset.sort_values("molecule_id").reset_index(drop=True)
     quarantine_columns = [
         "molecule_group_key",
         "representative_smiles",

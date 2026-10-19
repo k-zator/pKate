@@ -34,7 +34,8 @@ def parse_sdf(path):
 
 
 def main():
-    os.makedirs("data/processed", exist_ok=True)
+    output_dir = os.path.dirname(os.path.abspath(OUT_PATH))
+    os.makedirs(output_dir, exist_ok=True)
 
     all_files = sorted(
         path

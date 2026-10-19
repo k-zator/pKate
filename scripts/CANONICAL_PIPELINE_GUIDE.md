@@ -533,8 +533,10 @@ Important confidence fields are:
   observed pKa would fall on the side of the requested pH supporting the call;
   and
 - `stage3_overall_site_state_confidence`: conservative product of empirical
-  centered evidence, population decisiveness, Stage 1 applicability,
-  free-energy reconstruction quality, and pair-identifiability factors.
+  centered evidence, population decisiveness, pKa-interval robustness, Stage 1
+  applicability, free-energy reconstruction quality, and pair-identifiability
+  factors. It is therefore zero whenever the propagated probability interval
+  crosses the 50% state boundary.
 
 The empirical component uses signed residuals from Stage 1 scaffold OOF and
 Stage 2 scaffold holdout. Sparse exact-label residual distributions shrink to

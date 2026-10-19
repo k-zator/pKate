@@ -5,6 +5,7 @@ import random
 import re
 import statistics
 import time
+from collections.abc import Mapping
 from datetime import datetime, timezone
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 from urllib.error import HTTPError, URLError
@@ -145,7 +146,9 @@ def load_checkpoint(path: str) -> Optional[Dict[str, Any]]:
 
 
 def save_checkpoint(path: str, payload: Dict[str, Any]) -> None:
-    os.makedirs(os.path.dirname(path), exist_ok=True)
+    parent = os.path.dirname(path)
+    if parent:
+        os.makedirs(parent, exist_ok=True)
     with open(path, "w", encoding="utf-8") as handle:
         json.dump(payload, handle, indent=2)
 
@@ -176,31 +179,52 @@ def fetch_activity_rows(
 ) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
     rows: List[Dict[str, Any]] = []
     page_count = 0
+    truncated_mid_page = False
     next_url: Optional[str] = start_url
+    if checkpoint_state and checkpoint_state.get("truncated_mid_page"):
+        raise ValueError(
+            "Cannot resume a checkpoint stopped partway through an API page. "
+            "Start a fresh pull without --max-records to avoid skipped records."
+        )
     if checkpoint_state and checkpoint_state.get("next_url"):
         next_url = str(checkpoint_state["next_url"])
         page_count = int(checkpoint_state.get("pages_fetched", 0))
+        checkpoint_rows = checkpoint_state.get("activities")
+        if page_count > 0 and not isinstance(checkpoint_rows, list):
+            raise ValueError(
+                "Cannot safely resume this legacy checkpoint: fetched activity "
+                "rows were not stored. Start a fresh pull to avoid data loss."
+            )
+        rows = [dict(row) for row in (checkpoint_rows or []) if isinstance(row, Mapping)]
 
     while next_url:
         if max_pages > 0 and page_count >= max_pages:
+            break
+        if max_records > 0 and len(rows) >= max_records:
             break
         payload = api_get_json(next_url, timeout, max_retries, sleep_seconds)
         activities = payload.get("activities", [])
         if not isinstance(activities, list):
             activities = []
 
-        for activity in activities:
+        for activity_position, activity in enumerate(activities):
             if max_records > 0 and len(rows) >= max_records:
+                truncated_mid_page = activity_position < len(activities)
                 break
-            rows.append(activity)
+            if isinstance(activity, Mapping):
+                rows.append(dict(activity))
         page_count += 1
 
-        current_next = payload.get("page_meta", {}).get("next")
+        page_meta = payload.get("page_meta", {})
+        current_next = page_meta.get("next") if isinstance(page_meta, Mapping) else None
         normalized_next = normalize_next_url(current_next, default_limit=int(parse_qs(urlparse(start_url).query).get("limit", [1000])[0]))
+        next_url = normalized_next
         checkpoint_payload = {
             "next_url": normalized_next,
             "pages_fetched": page_count,
             "records_fetched": len(rows),
+            "activities": rows,
+            "truncated_mid_page": truncated_mid_page,
             "saved_at": utc_now_iso(),
         }
         save_checkpoint(checkpoint_path, checkpoint_payload)
@@ -208,7 +232,6 @@ def fetch_activity_rows(
         if max_records > 0 and len(rows) >= max_records:
             break
 
-        next_url = normalized_next
         if sleep_seconds > 0:
             time.sleep(sleep_seconds)
 
@@ -216,6 +239,8 @@ def fetch_activity_rows(
         "next_url": next_url,
         "pages_fetched": page_count,
         "records_fetched": len(rows),
+        "activities": rows,
+        "truncated_mid_page": truncated_mid_page,
         "saved_at": utc_now_iso(),
     }
     save_checkpoint(checkpoint_path, final_state)
@@ -242,6 +267,8 @@ def fetch_entity_map(
         if not isinstance(items, list):
             items = []
         for item in items:
+            if not isinstance(item, Mapping):
+                continue
             entity_id = item.get(id_field)
             if entity_id:
                 result[str(entity_id)] = item
@@ -260,15 +287,27 @@ def build_raw_dataframe(
     pulled_at = utc_now_iso()
     rows: List[Dict[str, Any]] = []
     for activity in activities:
+        if not isinstance(activity, Mapping):
+            continue
         assay_id = str(activity.get("assay_chembl_id") or "").strip()
         molecule_id = str(activity.get("molecule_chembl_id") or "").strip()
         assay = assay_map.get(assay_id, {})
+        if not isinstance(assay, Mapping):
+            assay = {}
         target_id = str(activity.get("target_chembl_id") or assay.get("target_chembl_id") or "").strip()
         target = target_map.get(target_id, {})
+        if not isinstance(target, Mapping):
+            target = {}
         molecule = molecule_map.get(molecule_id, {})
+        if not isinstance(molecule, Mapping):
+            molecule = {}
 
         molecule_structures = molecule.get("molecule_structures") or {}
         molecule_hierarchy = molecule.get("molecule_hierarchy") or {}
+        if not isinstance(molecule_structures, Mapping):
+            molecule_structures = {}
+        if not isinstance(molecule_hierarchy, Mapping):
+            molecule_hierarchy = {}
         canonical_smiles = molecule_structures.get("canonical_smiles")
         parent_id = molecule_hierarchy.get("parent_chembl_id") or molecule_id
 
@@ -353,11 +392,14 @@ def clean_observations(raw_df: pd.DataFrame) -> pd.DataFrame:
 
     df["drop_reason"] = ""
     df.loc[df["standard_value_num"].isna(), "drop_reason"] = "missing_numeric_value"
-    df.loc[~df["relation_normalized"].isin(["=", "<", "<=", ">", ">="]), "drop_reason"] = "unsupported_relation"
+    unsupported_relation = ~df["relation_normalized"].isin(["=", "<", "<=", ">", ">="])
+    df.loc[unsupported_relation & df["drop_reason"].eq(""), "drop_reason"] = "unsupported_relation"
     out_of_range = (df["standard_value_num"] < -5) | (df["standard_value_num"] > 20)
     df.loc[out_of_range & df["drop_reason"].eq(""), "drop_reason"] = "outside_reasonable_range"
-    df.loc[df["canonical_smiles"].isna() & df["drop_reason"].eq(""), "drop_reason"] = "missing_canonical_smiles"
-    df.loc[df["parent_molecule_chembl_id"].isna() & df["drop_reason"].eq(""), "drop_reason"] = "missing_parent_molecule"
+    missing_smiles = df["canonical_smiles"].isna() | df["canonical_smiles"].fillna("").astype(str).str.strip().eq("")
+    missing_parent = df["parent_molecule_chembl_id"].isna() | df["parent_molecule_chembl_id"].fillna("").astype(str).str.strip().eq("")
+    df.loc[missing_smiles & df["drop_reason"].eq(""), "drop_reason"] = "missing_canonical_smiles"
+    df.loc[missing_parent & df["drop_reason"].eq(""), "drop_reason"] = "missing_parent_molecule"
 
     df["keep_observation"] = df["drop_reason"].eq("")
     df["obs_id"] = [f"obs_{index+1}" for index in range(len(df))]

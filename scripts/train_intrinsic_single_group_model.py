@@ -39,6 +39,11 @@ _CONTEXT_GROUP_LABELS = tuple(sorted({
     str(spec["label"]) for spec in get_default_pattern_specs()
 }))
 
+# Increment this whenever ``build_intrinsic_features`` changes the meaning,
+# ordering, or preprocessing of a feature.  The concrete column list remains
+# in every bundle as an additional estimator-specific contract.
+STAGE1_FEATURE_SCHEMA_VERSION = "1.0.0"
+
 
 def _molecule_key(row: pd.Series) -> str:
     return f"{row['source_file']}::{int(row['record_index'])}::{row['smiles']}"
@@ -566,6 +571,7 @@ def main() -> None:
     bundle = {
         "model": scaffold_model,
         "feature_columns": list(X.columns),
+        "stage1_feature_schema_version": STAGE1_FEATURE_SCHEMA_VERSION,
         "fp_bits": int(args.fp_bits),
         "fp_radius": int(args.fp_radius),
         "training_measurement_method": measurement_method,

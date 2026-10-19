@@ -30,7 +30,10 @@ from stage1_canonical_data import (
 )
 from functional_group_pka_analysis import ACIDIC_FAMILIES
 from reference_residual_model import ReferenceResidualRegressor
-from train_intrinsic_single_group_model import build_intrinsic_features
+from train_intrinsic_single_group_model import (
+    STAGE1_FEATURE_SCHEMA_VERSION,
+    build_intrinsic_features,
+)
 
 
 DEFAULT_NETWORK_DATASET = "data/processed/pka_molecule_microstate_network_dataset.csv"
@@ -428,6 +431,7 @@ def train_stage1(
     bundle = {
         "model": deployment_model,
         "feature_columns": list(features.columns),
+        "stage1_feature_schema_version": STAGE1_FEATURE_SCHEMA_VERSION,
         "fp_bits": int(fp_bits),
         "fp_radius": int(fp_radius),
         "stage1_schema_version": STAGE1_TRAINING_SCHEMA_VERSION,

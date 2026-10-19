@@ -868,7 +868,9 @@ def test_molecule_builder_keeps_measured_anchor_and_predicts_other_site(tmp_path
         pickle.dump({
             "training_measurement_method": "experimental",
             "training_rows": 10,
-            "feature_columns": [],
+            # The predictor is stubbed below, but the bundle must still satisfy
+            # the public Stage 1 feature contract validated at load time.
+            "feature_columns": ["synthetic_feature"],
             "model": None,
             "fp_bits": 32,
             "fp_radius": 2,

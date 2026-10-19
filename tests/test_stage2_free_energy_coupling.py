@@ -88,6 +88,26 @@ def test_pairwise_populations_and_marginals_are_normalized():
     assert marginals["a"] < 0.5
 
 
+def test_positive_pair_coupling_moves_site_decision_boundary_with_background():
+    sites, nodes, edges = _two_site_network()
+    one_body = {"a": 7.0, "b": 12.0}
+    ph = 8.0
+    uncoupled = site_marginals_from_pairwise_model(
+        nodes, sites, one_body, {}, ph=ph
+    )
+    pairs = {canonical_pair_key("a", "b"): 2.0}
+    coupled = site_marginals_from_pairwise_model(
+        nodes, sites, one_body, pairs, ph=ph
+    )
+    edge_values, _ = contextual_edge_pkas(nodes, edges, sites, one_body, pairs)
+
+    assert edge_values["a0"]["contextual_edge_pka"] == pytest.approx(7.0)
+    assert edge_values["a1"]["contextual_edge_pka"] == pytest.approx(9.0)
+    assert uncoupled["a"] < 0.5
+    assert coupled["a"] > 0.5
+    assert coupled["b"] > 0.999
+
+
 def test_serial_coordinate_occupancies_remain_nested():
     sites = [
         {"site_id": "acidity", "coupling_group_id": "g", "acid_level": 0},

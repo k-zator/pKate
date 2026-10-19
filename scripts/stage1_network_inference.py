@@ -11,7 +11,10 @@ import numpy as np
 import pandas as pd  # type: ignore
 from rdkit import rdBase  # type: ignore
 
-from train_intrinsic_single_group_model import build_intrinsic_features
+from train_intrinsic_single_group_model import (
+    STAGE1_FEATURE_SCHEMA_VERSION,
+    build_intrinsic_features,
+)
 from ml_features import morgan_bits
 
 
@@ -46,6 +49,38 @@ def load_stage1_bundle(path: str, require_experimental_only: bool = True) -> Dic
             raise ValueError("Canonical Stage 1 deployment model was not fit on all eligible rows")
         if int(bundle.get("deployment_fit_rows", -1)) != int(bundle.get("training_rows", -2)):
             raise ValueError("Canonical Stage 1 deployment-fit provenance is inconsistent")
+
+    feature_version = bundle.get("stage1_feature_schema_version")
+    if (
+        feature_version is not None
+        and str(feature_version) != STAGE1_FEATURE_SCHEMA_VERSION
+    ):
+        raise ValueError(
+            "Stage 1 feature schema version mismatch: "
+            f"bundle={feature_version!r}, code={STAGE1_FEATURE_SCHEMA_VERSION!r}"
+        )
+
+    feature_columns = bundle["feature_columns"]
+    if not isinstance(feature_columns, (list, tuple)) or not feature_columns:
+        raise ValueError("Invalid Stage 1 bundle; feature_columns must be non-empty")
+    feature_columns = [str(column) for column in feature_columns]
+    if len(feature_columns) != len(set(feature_columns)):
+        raise ValueError("Invalid Stage 1 bundle; feature_columns contains duplicates")
+
+    model = bundle["model"]
+    fitted_columns = getattr(model, "feature_names_in_", None)
+    if fitted_columns is not None:
+        fitted_columns = [str(column) for column in fitted_columns]
+        if fitted_columns != feature_columns:
+            raise ValueError(
+                "Stage 1 bundle feature columns do not match the fitted model"
+            )
+    fitted_count = getattr(model, "n_features_in_", None)
+    if fitted_count is not None and int(fitted_count) != len(feature_columns):
+        raise ValueError(
+            "Stage 1 bundle feature count does not match the fitted model: "
+            f"bundle={len(feature_columns)}, model={int(fitted_count)}"
+        )
     return bundle
 
 
@@ -62,7 +97,18 @@ def _predict_chunk(payload: Tuple[str, List[Dict]]) -> List[Tuple[str, float]]:
             label_col="candidate_label",
         )
     features = features.reindex(columns=bundle["feature_columns"], fill_value=0.0)
-    predictions = bundle["model"].predict(features)
+    predictions = np.asarray(bundle["model"].predict(features), dtype=float).reshape(-1)
+    if len(predictions) != len(frame):
+        raise RuntimeError(
+            "Stage 1 model returned a different number of pKa predictions "
+            f"({len(predictions)}) than submitted site tasks ({len(frame)})"
+        )
+    if not np.isfinite(predictions).all():
+        bad_task_ids = frame.loc[~np.isfinite(predictions), "task_id"].astype(str)
+        raise ValueError(
+            "Stage 1 model returned a non-finite pKa for task(s): "
+            + ", ".join(bad_task_ids)
+        )
     return [(task_id, float(value)) for task_id, value in zip(frame["task_id"], predictions)]
 
 
@@ -70,6 +116,12 @@ def predict_stage1_tasks(tasks: List[Dict], bundle_path: str, workers: int = 1) 
     """Predict intrinsic pKa for site tasks without using experimental pKa."""
     if not tasks:
         return {}
+    task_ids = [str(task.get("task_id", "")) for task in tasks]
+    if any(not task_id for task_id in task_ids):
+        raise ValueError("Every Stage 1 prediction task requires a non-empty task_id")
+    if len(task_ids) != len(set(task_ids)):
+        duplicates = sorted({task_id for task_id in task_ids if task_ids.count(task_id) > 1})
+        raise ValueError(f"Duplicate Stage 1 task_id values: {duplicates}")
     workers = max(1, int(workers))
     if workers == 1:
         return dict(_predict_chunk((bundle_path, tasks)))

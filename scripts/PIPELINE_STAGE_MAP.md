@@ -253,9 +253,11 @@ explicitly non-robust. A separate empirical confidence estimates whether the
 observed scalar pKa lies on the side of the requested pH that supports the
 Stage 3 site call. It uses hierarchical shrinkage from exact-label to family to
 global scaffold-held-out signed residuals. Overall confidence combines this
-empirical evidence with population decisiveness, exact-label applicability,
-free-energy reconstruction quality, and coupling identifiability. This is a
-pKa-side proxy, not direct validation against experimental microstate labels.
+empirical evidence with population decisiveness, propagated pKa-interval
+robustness, exact-label applicability, free-energy reconstruction quality, and
+coupling identifiability. An interval that crosses 50% protonation forces the
+overall confidence to zero. This is a pKa-side proxy, not direct validation
+against experimental microstate labels.
 
 Within each populated protonation configuration, Stage 3 ranks the union of all
 enumerated tautomers with RDKit's rule score and writes one auditable row per

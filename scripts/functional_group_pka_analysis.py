@@ -1,6 +1,7 @@
 import argparse
 import glob
 import importlib
+import math
 import os
 import re
 from collections import Counter
@@ -702,7 +703,8 @@ LABEL_TYPE_MAP = _label_type_lookup()
 
 def _safe_float(value: str) -> Optional[float]:
     try:
-        return float(value)
+        parsed = float(value)
+        return parsed if math.isfinite(parsed) else None
     except (TypeError, ValueError):
         return None
 
@@ -746,7 +748,7 @@ def _extract_epik_measurements(mol: Chem.Mol, prop_names: List[str]) -> List[Dic
             lower_ident = site_identifier.lower()
             if "acid" in lower_ident:
                 pka_type_raw = "acidic"
-            elif "base" in lower_ident:
+            elif "base" in lower_ident or "basic" in lower_ident:
                 pka_type_raw = "basic"
 
         records.append(
@@ -1032,6 +1034,17 @@ def expand_pair_site_transitions(
         family = str(site.get("family") or normalize_conjugate_family(detector_label) or "")
         mode, member_form = classify_pair_type(detector_label, family)
         if mode != "pair_type" or member_form not in {"acid_form", "base_form"}:
+            return []
+        transition_type = (
+            "acidic" if family in ACIDIC_FAMILIES
+            else "basic" if family in BASIC_FAMILIES
+            else None
+        )
+        if (
+            preferred_type in {"acidic", "basic"}
+            and transition_type is not None
+            and transition_type != preferred_type
+        ):
             return []
         return [{
             **site,

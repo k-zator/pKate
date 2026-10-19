@@ -40,14 +40,29 @@ DEFAULT_QUEUE_CSV = "data/processed/site_resolution_review_queue.csv"
 DEFAULT_IMAGE_DIR = "data/processed/site_resolution_review_images"
 
 
+def _safe_count(value: object) -> int:
+    """Parse nullable table counts without attempting ``int(nan)``."""
+    parsed = pd.to_numeric(value, errors="coerce")
+    return 0 if pd.isna(parsed) else int(parsed)
+
+
+def _truthy(value: object) -> bool:
+    """Interpret booleans loaded from CSV without making ``"False"`` true."""
+    if value is None or pd.isna(value):
+        return False
+    if isinstance(value, str):
+        return value.strip().lower() in {"true", "1", "yes", "y"}
+    return bool(value)
+
+
 def _reason_tags(row: pd.Series) -> List[str]:
     reasons: List[str] = []
     if str(row.get("assignment_status", "")) != "single_group":
         reasons.append(str(row.get("assignment_status", "")) or "non_single_group")
-    if int(pd.to_numeric(row.get("atom_candidate_count", 0), errors="coerce") or 0) > 1:
+    if _safe_count(row.get("atom_candidate_count", 0)) > 1:
         reasons.append("multiple_atom_matches")
-    if bool(row.get("atom_index_raw") == row.get("atom_index_raw")) and not bool(row.get("atom_site_match", False)):
-        if int(pd.to_numeric(row.get("resolved_group_count", 0), errors="coerce") or 0) > 1:
+    if bool(row.get("atom_index_raw") == row.get("atom_index_raw")) and not _truthy(row.get("atom_site_match", False)):
+        if _safe_count(row.get("resolved_group_count", 0)) > 1:
             reasons.append("atom_index_unmatched")
     if str(row.get("pair_assignment_confidence", "")) == "ambiguous":
         reasons.append("pair_confidence_ambiguous")
@@ -78,7 +93,7 @@ def build_site_resolution_review_queue(
     work["review_reason"] = work.apply(lambda row: "|".join(_reason_tags(row)), axis=1)
     queue = work[work["review_reason"] != ""].copy()
     if not include_reviewed and "site_override_applied" in queue.columns:
-        queue = queue[~queue["site_override_applied"].astype(bool)].copy()
+        queue = queue[~queue["site_override_applied"].map(_truthy)].copy()
     queue = queue.drop_duplicates(subset=SITE_OVERRIDE_KEY_COLUMNS).copy()
     queue = queue.sort_values(["source_file", "record_index", "pka_value"]).reset_index(drop=True)
     return queue
@@ -164,7 +179,7 @@ def _render_review_png(
     candidates: List[Dict[str, object]],
     out_path: str,
 ) -> str:
-    os.makedirs(os.path.dirname(out_path), exist_ok=True)
+    os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)
 
     draw_mol = Chem.RWMol(mol)
     try:
@@ -242,7 +257,7 @@ def _load_overrides(path: str) -> pd.DataFrame:
 
 
 def _save_overrides(path: str, overrides: pd.DataFrame) -> None:
-    os.makedirs(os.path.dirname(path), exist_ok=True)
+    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
     work = overrides.copy()
     work = work.drop_duplicates(subset=SITE_OVERRIDE_KEY_COLUMNS, keep="last")
     work.to_csv(path, index=False)
@@ -325,7 +340,7 @@ def review_site_resolution(
     if max_records > 0:
         queue = queue.head(int(max_records)).copy()
 
-    os.makedirs(os.path.dirname(queue_csv), exist_ok=True)
+    os.makedirs(os.path.dirname(queue_csv) or ".", exist_ok=True)
     queue.to_csv(queue_csv, index=False)
     print(f"Saved review queue: {queue_csv} ({len(queue)} rows)")
     print(f"Overrides path: {overrides_path}")

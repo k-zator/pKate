@@ -169,6 +169,10 @@ def _strict_summary_frame(assignments_df: pd.DataFrame) -> pd.DataFrame:
         & assignments_df["final_group_summary_label"].notna()
         & assignments_df["distribution_ok"]
     ].copy()
+    if "pka_source_method" in strict_df.columns:
+        strict_df = strict_df[
+            strict_df["pka_source_method"].astype(str).str.strip().str.lower().eq("experimental")
+        ].copy()
     if strict_df.empty:
         return pd.DataFrame(columns=EMPTY_SUMMARY_COLUMNS)
 
@@ -529,6 +533,13 @@ def _read_sampl7_experimental(sampl7_root: str, include_compounds: Optional[Sequ
             "Isomeric SMILES": "reference_smiles",
         }
     )
+    required = {"compound_id", "pka_value", "pka_sem", "reference_smiles"}
+    missing = required - set(df.columns)
+    if missing:
+        raise ValueError(f"SAMPL7 experimental table is missing columns: {sorted(missing)}")
+    df["pka_value"] = pd.to_numeric(df["pka_value"], errors="coerce")
+    df["pka_sem"] = pd.to_numeric(df["pka_sem"], errors="coerce")
+    df = df.dropna(subset=["compound_id", "pka_value"]).copy()
     if include_compounds:
         df = df[df["compound_id"].isin(include_compounds)].copy()
     df["dataset_name"] = "SAMPL7"
@@ -547,6 +558,13 @@ def _read_sampl8_experimental(sampl8_root: str, include_compounds: Optional[Sequ
             "uncertainty (every pKa is followed by an uncertainty; multiple pairs indicate multiple pKa values; N/A if not measured)": "pka_sem",
         }
     )
+    required = {"compound_id", "pka_value", "pka_sem"}
+    missing = required - set(df.columns)
+    if missing:
+        raise ValueError(f"SAMPL8 experimental table is missing columns: {sorted(missing)}")
+    df["pka_value"] = pd.to_numeric(df["pka_value"], errors="coerce")
+    df["pka_sem"] = pd.to_numeric(df["pka_sem"], errors="coerce")
+    df = df.dropna(subset=["compound_id", "pka_value"]).copy()
     if include_compounds:
         df = df[df["compound_id"].isin(include_compounds)].copy()
     df["dataset_name"] = "SAMPL8"
@@ -560,6 +578,10 @@ def _load_microstates(
     dataset_name: str,
     include_compounds: Optional[Sequence[str]] = None,
 ) -> pd.DataFrame:
+    output_columns = [
+        "dataset_name", "compound_id", "microstate_id", "smiles",
+        "formal_charge", "is_reference", "microstate_csv",
+    ]
     rows: List[Dict[str, object]] = []
     for csv_path in sorted(glob.glob(os.path.join(microstate_dir, "*_microstates.csv"))):
         compound_id = os.path.basename(csv_path).replace("_microstates.csv", "")
@@ -568,10 +590,23 @@ def _load_microstates(
 
         df = pd.read_csv(csv_path)
         df.columns = [column.strip() for column in df.columns]
+        required = {"microstate ID", "canonical isomeric SMILES"}
+        missing = required - set(df.columns)
+        if missing:
+            raise ValueError(
+                f"Microstate table {csv_path} is missing columns: {sorted(missing)}"
+            )
         for row in df.to_dict(orient="records"):
             microstate_id = str(row.get("microstate ID", "")).strip()
             smiles = str(row.get("canonical isomeric SMILES", "")).strip()
+            if not microstate_id:
+                raise ValueError(f"Microstate table {csv_path} contains a blank microstate ID")
             mol = Chem.MolFromSmiles(smiles)
+            if mol is None:
+                raise ValueError(
+                    f"Microstate table {csv_path} contains invalid SMILES for "
+                    f"{microstate_id}: {smiles!r}"
+                )
             rows.append(
                 {
                     "dataset_name": dataset_name,
@@ -584,7 +619,19 @@ def _load_microstates(
                 }
             )
 
-    return pd.DataFrame(rows)
+    result = pd.DataFrame(rows, columns=output_columns)
+    if result.empty:
+        return result
+    duplicate_ids = result.duplicated(["compound_id", "microstate_id"], keep=False)
+    if duplicate_ids.any():
+        duplicates = sorted(result.loc[duplicate_ids, "microstate_id"].astype(str).unique())
+        raise ValueError(f"Duplicate microstate IDs detected: {duplicates}")
+    reference_counts = result.groupby("compound_id")["is_reference"].sum()
+    invalid_reference_counts = reference_counts[reference_counts != 1]
+    if not invalid_reference_counts.empty:
+        details = {str(key): int(value) for key, value in invalid_reference_counts.items()}
+        raise ValueError(f"Each compound must have exactly one reference microstate: {details}")
+    return result
 
 
 def _reference_transition_records(microstates_df: pd.DataFrame, overlap_threshold: float) -> List[Dict[str, object]]:

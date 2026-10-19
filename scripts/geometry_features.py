@@ -96,7 +96,17 @@ def molecule_geometry_features(
 
 def _coords_for_atoms(mol_3d: Chem.Mol, atom_indices: Iterable[int]) -> np.ndarray:
     conformer = mol_3d.GetConformer()
-    coords = [conformer.GetAtomPosition(int(atom_idx)) for atom_idx in atom_indices]
+    validated_indices = []
+    for atom_idx in atom_indices:
+        try:
+            atom_idx = int(atom_idx)
+        except (TypeError, ValueError):
+            return np.zeros((0, 3), dtype=np.float32)
+        if atom_idx < 0 or atom_idx >= mol_3d.GetNumAtoms():
+            return np.zeros((0, 3), dtype=np.float32)
+        validated_indices.append(atom_idx)
+
+    coords = [conformer.GetAtomPosition(atom_idx) for atom_idx in validated_indices]
     if not coords:
         return np.zeros((0, 3), dtype=np.float32)
     return np.asarray([[pos.x, pos.y, pos.z] for pos in coords], dtype=np.float32)

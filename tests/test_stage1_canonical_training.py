@@ -1,13 +1,20 @@
 import json
 import pickle
 
+import numpy as np
 import pandas as pd
 import pytest
 from sklearn.tree import DecisionTreeRegressor
 
 from stage1_canonical_data import (
     TARGET_DEFINITION,
+    _independent_measurements,
+    _measurement_weight,
+    _safe_int,
+    _truthy,
     build_stage1_training_sites,
+    canonical_structure_key,
+    load_stage1_training_sites,
     scaffold_group_key,
 )
 from stage1_network_inference import load_stage1_bundle
@@ -170,3 +177,104 @@ def test_reference_residual_bundle_has_import_stable_pickle_identity(tmp_path):
     with path.open("rb") as handle:
         restored = pickle.load(handle)
     assert restored.predict(features).shape == (3,)
+
+
+def test_stage1_scalar_helpers_and_invalid_structure_keys_are_stable():
+    assert canonical_structure_key("bad") == canonical_structure_key("bad")
+    assert canonical_structure_key("bad").startswith("invalid::")
+    assert scaffold_group_key("bad").startswith("invalid::")
+    assert _truthy(" YES ") is True
+    assert _truthy("no") is False
+    assert _truthy(None, default=True) is True
+    assert _truthy(float("nan"), default=True) is True
+    assert _safe_int("4") == 4
+    assert _safe_int("bad", 7) == 7
+    assert _safe_int(np.nan, 8) == 8
+    assert 0.1 <= _measurement_weight(1000, 0.0, -1.0, "gold") <= 1.5
+    assert _measurement_weight(1, 100.0, 5.0, "unknown") == pytest.approx(0.1)
+
+
+def test_independent_measurements_collapses_copies_and_prefers_higher_tier():
+    measurements = [
+        {"experimental_pka": 4.2, "source_document_id": "doc", "source_assay_id": "a", "evidence_tier": "silver"},
+        {"experimental_pka": 4.2, "source_document_id": "doc", "source_assay_id": "a", "evidence_tier": "gold"},
+        {"experimental_pka": 4.2, "source_file": "copied-one.sdf", "evidence_tier": "silver"},
+        {"experimental_pka": 4.2, "source_file": "copied-two.sdf", "evidence_tier": "gold"},
+    ]
+    retained = _independent_measurements(measurements)
+    assert len(retained) == 2
+    assert all(row["evidence_tier"] == "gold" for row in retained)
+
+
+def test_stage1_rejects_missing_columns_and_epik_provenance():
+    with pytest.raises(ValueError, match="missing Stage 1 source"):
+        build_stage1_training_sites(pd.DataFrame({"molecule_id": ["x"]}))
+    row = _network_row("mol", "CC(=O)O", [4.7])
+    row["epik_values_used"] = True
+    with pytest.raises(ValueError, match="Epik"):
+        build_stage1_training_sites(pd.DataFrame([row]))
+
+
+def test_stage1_skips_malformed_and_multicoordinate_network_rows():
+    malformed = _network_row("bad-json", "CCO", [7.0])
+    malformed["sites_json"] = "not-json"
+    multi = _network_row("multi", "NCC(=O)O", [4.0])
+    first = json.loads(multi["sites_json"])[0]
+    second = {**first, "site_id": "site_2", "coupling_group_id": "group_2"}
+    first["coupling_group_id"] = "group_1"
+    multi["sites_json"] = json.dumps([first, second])
+    training, quarantine, funnel = build_stage1_training_sites(pd.DataFrame([malformed, multi]))
+    assert training.empty and quarantine.empty
+    assert funnel["single_coordinate_molecules"] == 0
+
+
+def test_stage1_quarantines_unreadable_completeness_and_no_eligible_measurement():
+    incomplete = _network_row("incomplete", "CC(=O)O", [4.7])
+    incomplete["incomplete_site_ids_json"] = "not-json"
+    ineligible = _network_row("ineligible", "CCC(=O)O", [4.8])
+    site = json.loads(ineligible["sites_json"])[0]
+    site["experimental_measurements"][0]["stage1_local_supervision_eligible"] = False
+    ineligible["sites_json"] = json.dumps([site])
+    training, quarantine, _ = build_stage1_training_sites(pd.DataFrame([incomplete, ineligible]))
+    assert training.empty
+    assert set(quarantine["quarantine_reason"]) == {
+        "incomplete_or_truncated_microstate_network",
+        "no_finite_experimental_measurement",
+    }
+
+
+def test_stage1_accepts_silver_without_atom_map_and_records_medium_confidence():
+    row = _network_row("silver", "CC(=O)O", [4.6])
+    site = json.loads(row["sites_json"])[0]
+    site["center_maps"] = []
+    measurement = site["experimental_measurements"][0]
+    measurement.update({
+        "evidence_tier": "silver",
+        "structural_site_assignment_confidence": "medium",
+        "source_document_id": "doc",
+        "source_assay_id": "assay",
+        "source_site_evidence": "manual",
+        "source_site_evidence_confidence": "medium",
+    })
+    row["sites_json"] = json.dumps([site])
+    training, quarantine, _ = build_stage1_training_sites(pd.DataFrame([row]))
+    assert quarantine.empty
+    result = training.iloc[0]
+    assert result["experimental_evidence_tier"] == "silver"
+    assert result["experimental_medium_confidence_fraction"] == pytest.approx(1.0)
+    assert pd.isna(result["atom_index_raw"])
+
+
+def test_load_stage1_training_sites_enforces_declared_provenance(tmp_path):
+    row = _network_row("mol", "CC(=O)O", [4.7])
+    row["stage1_training_measurement_method"] = "experimental"
+    path = tmp_path / "network.csv"
+    pd.DataFrame([row]).to_csv(path, index=False)
+    training, quarantine, funnel = load_stage1_training_sites(str(path))
+    assert len(training) == 1 and quarantine.empty
+    assert funnel["accepted_training_sites"] == 1
+
+    row["stage1_training_measurement_method"] = "marvin"
+    pd.DataFrame([row]).to_csv(path, index=False)
+    with pytest.raises(ValueError, match="not experimental-only"):
+        load_stage1_training_sites(str(path))

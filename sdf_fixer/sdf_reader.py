@@ -11,6 +11,7 @@ Protonation-state fixing is handled downstream.
 
 from __future__ import annotations
 
+import math
 import re
 from dataclasses import dataclass, field
 from typing import Dict, Iterable, List, Optional, Tuple
@@ -61,7 +62,7 @@ def _safe_float(value: Optional[str]) -> Optional[float]:
         return None
     try:
         v = float(value)
-        return v
+        return v if math.isfinite(v) else None
     except (TypeError, ValueError):
         return None
 

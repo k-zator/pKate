@@ -65,6 +65,13 @@ DEFAULT_STAGE2_QUARANTINE = (
     "training_site_quarantine.csv"
 )
 
+PROTONATED_STATE_DECISION_BOUNDARY = 0.5
+CONFIDENCE_TIER_THRESHOLDS = (
+    (0.70, "high"),
+    (0.40, "medium"),
+    (0.10, "low"),
+)
+
 STAGE3_OUTPUT_CONTRACT = {
     "schema_version": STAGE3_SCHEMA_VERSION,
     "primary_outputs": {
@@ -157,11 +164,113 @@ def _uncertainty_aware_state_confidence(
     probability_high: float,
 ) -> float:
     """Score how decisively an entire probability interval lies on one side of 0.5."""
-    if probability_low >= 0.5:
-        return float(2.0 * (probability_low - 0.5))
-    if probability_high <= 0.5:
-        return float(2.0 * (0.5 - probability_high))
+    if probability_low >= PROTONATED_STATE_DECISION_BOUNDARY:
+        return float(2.0 * (
+            probability_low - PROTONATED_STATE_DECISION_BOUNDARY
+        ))
+    if probability_high <= PROTONATED_STATE_DECISION_BOUNDARY:
+        return float(2.0 * (
+            PROTONATED_STATE_DECISION_BOUNDARY - probability_high
+        ))
     return 0.0
+
+
+def _predicted_site_form(probability: float | None) -> str:
+    """Apply the documented 0.5 state boundary, with ties on the acid side."""
+    if probability is None:
+        return "unavailable"
+    value = float(probability)
+    if not math.isfinite(value) or not 0.0 <= value <= 1.0:
+        raise ValueError("Site protonation probability must be finite and in [0, 1]")
+    return (
+        "acid_form"
+        if value >= PROTONATED_STATE_DECISION_BOUNDARY
+        else "base_form"
+    )
+
+
+def _confidence_tier(confidence: float) -> str:
+    """Map a normalized confidence score to its public, boundary-stable tier."""
+    value = float(confidence)
+    if not math.isfinite(value) or not 0.0 <= value <= 1.0:
+        raise ValueError("Overall confidence must be finite and in [0, 1]")
+    for threshold, tier in CONFIDENCE_TIER_THRESHOLDS:
+        if value >= threshold:
+            return tier
+    return "very_low"
+
+
+def _site_state_confidence(
+    *,
+    probability: float | None,
+    pka_interval_robustness: float,
+    empirical_call_confidence: float,
+    local_pka_confidence: str,
+    inverse_gap: float,
+    network_complete: bool,
+    pair_coupling_identifiability: str,
+) -> Tuple[float, str, Dict[str, float | bool]]:
+    """Compose an auditable site-state confidence score and its factors.
+
+    Point-probability decisiveness and interval robustness are distinct: a
+    decisive point estimate must not receive nonzero overall confidence when
+    its pKa sensitivity interval crosses the 0.5 protonation boundary.
+    """
+    if probability is None:
+        conditional_state_decisiveness = 0.0
+    else:
+        value = float(probability)
+        if not math.isfinite(value) or not 0.0 <= value <= 1.0:
+            raise ValueError("Site protonation probability must be finite and in [0, 1]")
+        conditional_state_decisiveness = float(abs((2.0 * value) - 1.0))
+
+    interval_robustness = float(pka_interval_robustness)
+    empirical_confidence = float(empirical_call_confidence)
+    gap = float(inverse_gap)
+    if not math.isfinite(interval_robustness) or not 0.0 <= interval_robustness <= 1.0:
+        raise ValueError("pKa interval robustness must be finite and in [0, 1]")
+    if not math.isfinite(empirical_confidence) or not 0.0 <= empirical_confidence <= 1.0:
+        raise ValueError("Empirical call confidence must be finite and in [0, 1]")
+    if not math.isfinite(gap) or gap < 0.0:
+        raise ValueError("Macro-pKa reconstruction gap must be finite and non-negative")
+
+    empirical_centered_evidence = max(
+        0.0, min(1.0, (2.0 * empirical_confidence) - 1.0)
+    )
+    support = str(local_pka_confidence)
+    applicability_factor = (
+        1.0 if support.startswith("high")
+        else 0.80 if support.startswith("medium")
+        else 0.55 if support.startswith("low")
+        else 0.30
+    )
+    reconstruction_factor = 0.0 if not network_complete else math.exp(-gap)
+    identifiability_factor = (
+        0.65
+        if str(pair_coupling_identifiability).startswith(
+            "regularized_prior_dependent"
+        )
+        else 1.0
+    )
+    overall_confidence = float(
+        empirical_centered_evidence
+        * conditional_state_decisiveness
+        * interval_robustness
+        * applicability_factor
+        * reconstruction_factor
+        * identifiability_factor
+    )
+    components: Dict[str, float | bool] = {
+        "conditional_state_decisiveness": conditional_state_decisiveness,
+        "pka_interval_robustness": interval_robustness,
+        "empirical_pka_side_call_confidence": empirical_confidence,
+        "empirical_pka_side_centered_evidence": empirical_centered_evidence,
+        "stage1_applicability_factor": applicability_factor,
+        "free_energy_reconstruction_factor": reconstruction_factor,
+        "pair_coupling_identifiability_factor": identifiability_factor,
+        "network_complete": bool(network_complete),
+    }
+    return overall_confidence, _confidence_tier(overall_confidence), components
 
 
 def _contextual_edge_pka_for_background(
@@ -699,10 +808,7 @@ def apply_stage3(
                 probability is not None and not uncertainty_crosses
             )
             uncertainty_crossing_site_states += int(uncertainty_crosses is True)
-            predicted_site_form = (
-                "acid_form" if probability is not None and probability >= 0.5
-                else "base_form" if probability is not None else "unavailable"
-            )
+            predicted_site_form = _predicted_site_form(probability)
             calibration_source = (
                 "stage1_single_site" if len(all_site_ids) == 1 else "stage2_multisite"
             )
@@ -729,41 +835,23 @@ def apply_stage3(
                 ])
                 if empirical_site_calibration is not None else 0.0
             )
-            empirical_centered_evidence = max(
-                0.0, min(1.0, (2.0 * empirical_call_confidence) - 1.0)
-            )
-            conditional_state_decisiveness = (
-                float(abs((2.0 * probability) - 1.0))
-                if probability is not None else 0.0
-            )
             local_support = str(site.get("local_pka_confidence", "none"))
-            applicability_factor = (
-                1.0 if local_support.startswith("high")
-                else 0.80 if local_support.startswith("medium")
-                else 0.55 if local_support.startswith("low")
-                else 0.30
-            )
-            reconstruction_factor = 0.0 if limited else math.exp(-inverse_gap)
             identifiability_status = str(free_energy_diagnostics.get(
                 "pair_coupling_identifiability", "unknown"
             ))
-            identifiability_factor = (
-                0.65
-                if identifiability_status.startswith("regularized_prior_dependent")
-                else 1.0
+            overall_confidence, overall_tier, confidence_components = (
+                _site_state_confidence(
+                    probability=probability,
+                    pka_interval_robustness=uncertainty_confidence,
+                    empirical_call_confidence=empirical_call_confidence,
+                    local_pka_confidence=local_support,
+                    inverse_gap=inverse_gap,
+                    network_complete=not limited,
+                    pair_coupling_identifiability=identifiability_status,
+                )
             )
-            overall_confidence = float(
-                empirical_centered_evidence
-                * conditional_state_decisiveness
-                * applicability_factor
-                * reconstruction_factor
-                * identifiability_factor
-            )
-            overall_tier = (
-                "high" if overall_confidence >= 0.70
-                else "medium" if overall_confidence >= 0.40
-                else "low" if overall_confidence >= 0.10
-                else "very_low"
+            empirical_centered_evidence = float(
+                confidence_components["empirical_pka_side_centered_evidence"]
             )
             site_contextual_edge_pkas = [
                 float(edge["stage3_contextual_edge_pka"])
@@ -856,16 +944,7 @@ def apply_stage3(
                 "stage3_empirical_calibration_method": EMPIRICAL_CALIBRATION_METHOD,
                 "stage3_overall_site_state_confidence": overall_confidence,
                 "stage3_overall_site_state_confidence_tier": overall_tier,
-                "stage3_confidence_components": {
-                    "conditional_state_decisiveness": conditional_state_decisiveness,
-                    "pka_interval_robustness": uncertainty_confidence,
-                    "empirical_pka_side_call_confidence": empirical_call_confidence,
-                    "empirical_pka_side_centered_evidence": empirical_centered_evidence,
-                    "stage1_applicability_factor": applicability_factor,
-                    "free_energy_reconstruction_factor": reconstruction_factor,
-                    "pair_coupling_identifiability_factor": identifiability_factor,
-                    "network_complete": not limited,
-                },
+                "stage3_confidence_components": confidence_components,
                 "stage3_pair_coupling_identifiability": identifiability_status,
                 "stage3_uncoupled_protonated_probability_at_ph": uncoupled_probability,
                 "stage3_site_call_changed_by_pair_coupling": pair_changes_site_call,

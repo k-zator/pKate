@@ -215,6 +215,10 @@ def apply_stage2(
                 site.update({
                     "stage2_applied": False,
                     "stage2_predicted_delta": 0.0,
+                    # Retain the Stage 1 ladder value internally so diagnostic
+                    # ordering remains inspectable.  It is not a publishable
+                    # Stage 2 prediction when the microstate graph is partial.
+                    "stage2_raw_predicted_macro_pka": baseline,
                     "stage2_predicted_macro_pka": (
                         None if network_limited else baseline
                     ),
@@ -300,18 +304,31 @@ def apply_stage2(
         )
         adjusted_here = 0
         for step, projected in zip(corrected_steps, projected_values):
-            step["stage2_predicted_macro_pka"] = projected
-            step["stage2_monotonic_projection_applied"] = not abs(
-                projected - step["stage2_raw_predicted_macro_pka"]
-            ) < 1e-12
+            projection_applied = (
+                not network_limited
+                and not abs(
+                    projected - step["stage2_raw_predicted_macro_pka"]
+                ) < 1e-12
+            )
+            step["stage2_predicted_macro_pka"] = (
+                None if network_limited else projected
+            )
+            step["stage2_monotonic_projection_applied"] = projection_applied
             adjusted_here += int(step["stage2_monotonic_projection_applied"])
             site = site_lookup[step["rank_associated_site_id"]]
-            site["stage2_predicted_macro_pka"] = projected
+            site["stage2_predicted_macro_pka"] = (
+                None if network_limited else projected
+            )
             old_center = float(site.get("stage2_raw_predicted_macro_pka", projected))
             low = float(site.get("stage2_predicted_macro_pka_ci_low", projected))
             high = float(site.get("stage2_predicted_macro_pka_ci_high", projected))
-            site["stage2_predicted_macro_pka_ci_low"] = projected + (low - old_center)
-            site["stage2_predicted_macro_pka_ci_high"] = projected + (high - old_center)
+            if not network_limited:
+                site["stage2_predicted_macro_pka_ci_low"] = (
+                    projected + (low - old_center)
+                )
+                site["stage2_predicted_macro_pka_ci_high"] = (
+                    projected + (high - old_center)
+                )
             site["stage2_monotonic_projection_applied"] = step["stage2_monotonic_projection_applied"]
         projected_molecule_count += int(adjusted_here > 0)
         projected_site_count += adjusted_here

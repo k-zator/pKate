@@ -186,6 +186,47 @@ def _optional_int(value: object) -> Optional[int]:
     return int(parsed) if parsed is not None else None
 
 
+def _optional_bool(value: object, default: bool = False) -> bool:
+    """Parse CSV/JSON-style booleans without treating ``"False"`` as true."""
+    if value is None or (not isinstance(value, (list, tuple, dict)) and pd.isna(value)):
+        return default
+    if isinstance(value, (bool, np.bool_)):
+        return bool(value)
+    if isinstance(value, (int, np.integer)):
+        return bool(value)
+    text = str(value).strip().lower()
+    if text in {"true", "1", "yes", "y"}:
+        return True
+    if text in {"false", "0", "no", "n", ""}:
+        return False
+    return default
+
+
+def _finite_number(value: object, name: str) -> float:
+    """Convert a public numeric argument and raise one stable API error."""
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"{name} must be a finite number") from exc
+    if not math.isfinite(parsed):
+        raise ValueError(f"{name} must be finite")
+    return parsed
+
+
+def _integer_parameter(value: object, name: str, minimum: int) -> int:
+    """Parse an integer-valued public argument without silently truncating it."""
+    if isinstance(value, (bool, np.bool_)):
+        raise ValueError(f"{name} must be an integer of at least {minimum}")
+    try:
+        numeric = float(value)
+        parsed = int(value)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError(f"{name} must be an integer of at least {minimum}") from exc
+    if not math.isfinite(numeric) or numeric != parsed or parsed < minimum:
+        raise ValueError(f"{name} must be an integer of at least {minimum}")
+    return parsed
+
+
 def _parse_json_list(value: object) -> list:
     try:
         parsed = json.loads(str(value))
@@ -557,7 +598,12 @@ def _site_payload(row: pd.Series) -> Dict[str, Any]:
     protonated_probability = _optional_float(
         row.get("stage3_protonated_probability_at_ph")
     )
-    predicted_form = str(row.get("stage3_predicted_site_form_at_ph", "unavailable"))
+    predicted_form_raw = row.get("stage3_predicted_site_form_at_ph", "unavailable")
+    predicted_form = (
+        "unavailable"
+        if predicted_form_raw is None or pd.isna(predicted_form_raw)
+        else str(predicted_form_raw)
+    )
     return {
         "site_id": str(row["site_id"]),
         "site_label": str(row["site_label"]),
@@ -592,8 +638,10 @@ def _site_payload(row: pd.Series) -> Dict[str, Any]:
         "overall_confidence": _optional_float(
             row.get("stage3_overall_site_state_confidence")
         ),
-        "confidence_tier": str(
-            row.get("stage3_overall_site_state_confidence_tier", "unavailable")
+        "confidence_tier": (
+            "unavailable"
+            if pd.isna(row.get("stage3_overall_site_state_confidence_tier"))
+            else str(row.get("stage3_overall_site_state_confidence_tier"))
         ),
         "stage1_applicability_domain": str(
             row.get("stage1_applicability_domain", "unknown")
@@ -601,7 +649,7 @@ def _site_payload(row: pd.Series) -> Dict[str, Any]:
         "stage1_exact_label_training_rows": _optional_int(
             row.get("stage1_exact_label_training_rows")
         ),
-        "stage2_applied": bool(row.get("stage2_applied", False)),
+        "stage2_applied": _optional_bool(row.get("stage2_applied", False)),
         "stage2_prediction_confidence": str(
             row.get("stage2_prediction_confidence", "unknown")
         ),
@@ -638,6 +686,35 @@ def _result_from_outputs(
     unresolved_contexts: Sequence[Dict],
     top_tautomers: int,
 ) -> PredictionResult:
+    if molecule_table.empty:
+        raise RuntimeError("Stage 3 returned no molecule-level prediction row")
+    if "molecule_id" not in molecule_table.columns:
+        raise RuntimeError("Stage 3 molecule output is missing required column: molecule_id")
+    if len(molecule_table) != 1:
+        raise RuntimeError(
+            "Single-molecule prediction expected exactly one Stage 3 molecule row; "
+            f"received {len(molecule_table)}"
+        )
+    required_site_columns = {"molecule_id", "site_id", "site_label", "site_family"}
+    missing_site_columns = required_site_columns - set(site_table.columns)
+    if missing_site_columns:
+        raise RuntimeError(
+            "Stage 3 site output is missing required columns: "
+            f"{sorted(missing_site_columns)}"
+        )
+    required_tautomer_columns = {
+        "molecule_id", "origin_node_id", "atom_mapped_smiles",
+        "tautomer_rank_within_configuration",
+    }
+    if tautomer_table.empty:
+        tautomer_table = pd.DataFrame(columns=sorted(required_tautomer_columns))
+    else:
+        missing_tautomer_columns = required_tautomer_columns - set(tautomer_table.columns)
+        if missing_tautomer_columns:
+            raise RuntimeError(
+                "Stage 3 tautomer output is missing required columns: "
+                f"{sorted(missing_tautomer_columns)}"
+            )
     row = molecule_table.iloc[0]
     molecule_id = str(row["molecule_id"])
     dominant_mapped_raw = row.get("stage3_dominant_atom_mapped_smiles")
@@ -762,18 +839,27 @@ def predict(
     """
     if not isinstance(smiles, str) or not smiles.strip():
         raise ValueError("smiles must be a non-empty string")
-    if not math.isfinite(float(ph)):
-        raise ValueError("ph must be finite")
-    if not 0.0 <= float(overlap_threshold) <= 1.0:
+    ph_value = _finite_number(ph, "ph")
+    overlap_value = _finite_number(overlap_threshold, "overlap_threshold")
+    tautomer_temperature = _finite_number(
+        tautomer_score_temperature, "tautomer_score_temperature"
+    )
+    if not 0.0 <= overlap_value <= 1.0:
         raise ValueError("overlap_threshold must be between zero and one")
-    if int(max_protonation_states) < 1:
-        raise ValueError("max_protonation_states must be at least one")
-    if int(max_tautomers_per_state) < 1:
-        raise ValueError("max_tautomers_per_state must be at least one")
-    if int(max_tautomers_per_configuration) < 1:
-        raise ValueError("max_tautomers_per_configuration must be at least one")
-    if int(top_tautomers) < 0:
-        raise ValueError("top_tautomers cannot be negative")
+    if tautomer_temperature <= 0.0:
+        raise ValueError("tautomer_score_temperature must be greater than zero")
+    protonation_state_cap = _integer_parameter(
+        max_protonation_states, "max_protonation_states", 1
+    )
+    tautomer_state_cap = _integer_parameter(
+        max_tautomers_per_state, "max_tautomers_per_state", 1
+    )
+    tautomer_configuration_cap = _integer_parameter(
+        max_tautomers_per_configuration,
+        "max_tautomers_per_configuration",
+        1,
+    )
+    returned_tautomer_cap = _integer_parameter(top_tautomers, "top_tautomers", 0)
 
     input_smiles = smiles.strip()
     molecule = Chem.MolFromSmiles(input_smiles)
@@ -782,10 +868,10 @@ def predict(
     canonical_smiles = Chem.MolToSmiles(
         molecule, canonical=True, isomericSmiles=True
     )
-    resolved_sites, transition_sites = _detect_sites(molecule, overlap_threshold)
+    resolved_sites, transition_sites = _detect_sites(molecule, overlap_value)
     if not transition_sites:
         return _no_site_result(
-            input_smiles, canonical_smiles, molecule, float(ph)
+            input_smiles, canonical_smiles, molecule, ph_value
         )
 
     model_artifacts = artifacts or ModelArtifacts.defaults()
@@ -816,11 +902,11 @@ def predict(
             molecule=molecule,
             resolved_sites=resolved_sites,
             transition_sites=transition_sites,
-            ph=float(ph),
+            ph=ph_value,
             artifacts=model_artifacts,
-            overlap_threshold=float(overlap_threshold),
-            max_protonation_states=int(max_protonation_states),
-            max_tautomers_per_state=int(max_tautomers_per_state),
+            overlap_threshold=overlap_value,
+            max_protonation_states=protonation_state_cap,
+            max_tautomers_per_state=tautomer_state_cap,
         )
         network.to_csv(stage1_network_path, index=False)
         apply_stage2(
@@ -835,18 +921,23 @@ def predict(
             stage2_model_path=str(model_artifacts.stage2_model),
             output_path=str(stage3_molecule_path),
             out_dir=str(stage3_dir),
-            ph=float(ph),
+            ph=ph_value,
             stage1_oof_path=str(model_artifacts.stage1_oof),
             stage2_eval_path=str(model_artifacts.stage2_eval),
             stage2_quarantine_path=str(model_artifacts.stage2_quarantine),
-            tautomer_score_temperature=float(tautomer_score_temperature),
+            tautomer_score_temperature=tautomer_temperature,
             max_tautomers_per_configuration=int(
-                max_tautomers_per_configuration
+                tautomer_configuration_cap
             ),
         )
-        site_table = pd.read_csv(
-            stage3_dir / "stage3_site_predictions.csv", low_memory=False
-        )
+        try:
+            site_table = pd.read_csv(
+                stage3_dir / "stage3_site_predictions.csv", low_memory=False
+            )
+        except (FileNotFoundError, pd.errors.EmptyDataError) as exc:
+            raise RuntimeError(
+                "Stage 3 did not produce a readable site-prediction table"
+            ) from exc
         try:
             tautomer_table = pd.read_csv(
                 stage3_dir / "stage3_ranked_tautomers.csv", low_memory=False
@@ -861,14 +952,14 @@ def predict(
         result = _result_from_outputs(
             input_smiles=input_smiles,
             canonical_smiles=canonical_smiles,
-            ph=float(ph),
+            ph=ph_value,
             molecule_table=molecule_table,
             site_table=site_table,
             tautomer_table=tautomer_table,
             artifacts=model_artifacts,
             persistent_output_dir=persistent_dir,
             unresolved_contexts=unresolved,
-            top_tautomers=int(top_tautomers),
+            top_tautomers=returned_tautomer_cap,
         )
         if persistent_dir is not None:
             summary_path = persistent_dir / "prediction.json"

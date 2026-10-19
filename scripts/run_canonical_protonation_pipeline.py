@@ -72,6 +72,8 @@ def run_canonical_pipeline(
             raise FileNotFoundError(
                 f"Cannot reuse missing Stage 2 output: {stage2_output_path}"
             )
+        if Path(stage2_output_path).stat().st_size == 0:
+            raise ValueError("Cannot reuse an empty Stage 2 output")
         stage2_header = pd.read_csv(stage2_output_path, nrows=1, low_memory=False)
         if stage2_header.empty:
             raise ValueError("Cannot reuse an empty Stage 2 output")

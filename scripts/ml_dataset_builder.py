@@ -10,6 +10,7 @@ from functional_group_pka_analysis import (
     CONJUGATE_MAP,
     PAIR_TYPE_FAMILY_FORMS,
     classify_pair_type,
+    expand_pair_site_transitions,
     training_group_label,
 )
 from SMARTS_library import ACIDIC_PKA
@@ -40,6 +41,118 @@ def _molecule_key(row: pd.Series) -> str:
     return f"{row['source_file']}::{int(row['record_index'])}::{row['smiles']}"
 
 
+def _deduplicate_measurement_rows(assignments: pd.DataFrame) -> pd.DataFrame:
+    """Collapse duplicate representations of one experimental measurement.
+
+    Some SDF records expose the same scalar through an untyped property and a
+    more informative acid/base-specific property.  Prefer manual overrides,
+    then typed rows, while refusing equally supported contradictory site labels.
+    """
+    identity = ["source_file", "record_index", "smiles", "pka_value"]
+    missing = set(identity) - set(assignments.columns)
+    if missing:
+        raise ValueError(
+            f"Cannot identify duplicate measurements; missing: {sorted(missing)}"
+        )
+    work = assignments.copy()
+    selected = (
+        work["selected_group_label"]
+        if "selected_group_label" in work.columns
+        else work["final_group_label"]
+    )
+    if "final_group_label" in work.columns:
+        selected = selected.where(selected.notna(), work["final_group_label"])
+    work["_dedup_selected_label"] = selected.fillna("").astype(str)
+    work["_dedup_override_rank"] = (
+        work.get("site_override_applied", False)
+        if "site_override_applied" in work.columns
+        else False
+    )
+    work["_dedup_override_rank"] = work["_dedup_override_rank"].map(
+        lambda value: int(
+            str(value).strip().lower() in {"1", "true", "yes"}
+            if isinstance(value, str)
+            else bool(value) if not pd.isna(value) else False
+        )
+    )
+    pka_type = work.get(
+        "pka_type_canonical", pd.Series(index=work.index, dtype=object)
+    )
+    work["_dedup_typed_rank"] = pka_type.astype(str).isin(
+        {"acidic", "basic"}
+    ).astype(int)
+    work["_dedup_selected_rank"] = work["_dedup_selected_label"].ne("").astype(int)
+
+    work["_dedup_priority"] = (
+        4 * work["_dedup_override_rank"]
+        + 2 * work["_dedup_typed_rank"]
+        + work["_dedup_selected_rank"]
+    )
+    best_priority = work.groupby(identity, dropna=False)["_dedup_priority"].transform(
+        "max"
+    )
+    best = work[work["_dedup_priority"] == best_priority].copy()
+    conflicts = best.groupby(identity, dropna=False)[
+        "_dedup_selected_label"
+    ].nunique()
+    conflicts = conflicts[conflicts > 1]
+    if not conflicts.empty:
+        key = conflicts.index[0]
+        part = best
+        for column, value in zip(identity, key):
+            part = part[part[column].eq(value) | (part[column].isna() & pd.isna(value))]
+        raise ValueError(
+            "Contradictory equally supported site assignments for measurement "
+            f"{key!r}: {sorted(set(part['_dedup_selected_label']))}"
+        )
+    result = best.drop_duplicates(subset=identity, keep="first").sort_index()
+    return result.drop(columns=[
+        "_dedup_selected_label",
+        "_dedup_override_rank",
+        "_dedup_typed_rank",
+        "_dedup_selected_rank",
+        "_dedup_priority",
+    ]).reset_index(drop=True)
+
+
+def _candidate_transition_labels(
+    detector_label: str,
+    selected_label: object,
+    preferred_type: object,
+) -> List[str]:
+    """Resolve one detector label into the pKa transitions eligible on this row.
+
+    Amphoteric azole detectors describe two serial equilibria.  When curation
+    selected a transition-specific label, retain that transition (and, for an
+    untyped measurement, its competing serial edge) rather than losing the
+    positive label because the raw detector used the ring-level name.
+    """
+    detector = str(detector_label)
+    selected = str(selected_label)
+    site = {
+        "label": detector,
+        "family": CONJUGATE_FAMILY_MAP.get(detector, detector),
+    }
+    expanded = expand_pair_site_transitions(site)
+    expanded_labels = [str(candidate["label"]) for candidate in expanded]
+    if selected == detector:
+        return [detector]
+    if selected in expanded_labels:
+        if str(preferred_type) in {"acidic", "basic"}:
+            typed = expand_pair_site_transitions(
+                site, preferred_type=str(preferred_type)
+            )
+            typed_labels = [str(candidate["label"]) for candidate in typed]
+            if selected in typed_labels:
+                return typed_labels
+        return expanded_labels
+    if str(preferred_type) in {"acidic", "basic"}:
+        typed = expand_pair_site_transitions(site, preferred_type=str(preferred_type))
+        if typed:
+            return [str(candidate["label"]) for candidate in typed]
+    return [detector]
+
+
 def _build_candidate_rows(df: pd.DataFrame) -> pd.DataFrame:
     rows = []
     for row in df.itertuples(index=False):
@@ -54,6 +167,15 @@ def _build_candidate_rows(df: pd.DataFrame) -> pd.DataFrame:
             candidates = sorted(set(_split_pipe(row.resolved_groups)))
         if not candidates:
             continue
+
+        transition_candidates = []
+        for candidate in candidates:
+            transition_candidates.extend(_candidate_transition_labels(
+                candidate,
+                selected_label,
+                getattr(row, "pka_type_canonical", None),
+            ))
+        candidates = transition_candidates
 
         # Track whether the true site has already been assigned for this
         # measurement to avoid marking multiple same-label instances as true.
@@ -101,6 +223,13 @@ def _build_candidate_rows(df: pd.DataFrame) -> pd.DataFrame:
                     "molecule_formal_charge": getattr(row, "molecule_formal_charge", 0.0),
                     "neutral_input_risk": getattr(row, "neutral_input_risk", False),
                 }
+            )
+
+        if not true_site_assigned:
+            raise ValueError(
+                "Selected pKa site/transition is absent from the resolved candidate "
+                f"set for {row.source_file} record {int(row.record_index)}: "
+                f"selected={selected_label!r}; candidates={candidates!r}"
             )
 
     out = pd.DataFrame(rows)
@@ -211,7 +340,7 @@ def _textbook_reference_pka(label: str) -> Optional[float]:
 
 
 def build_candidate_dataset(config: DatasetBuildConfig) -> pd.DataFrame:
-    assignments = pd.read_csv(config.assignments_path)
+    assignments = pd.read_csv(config.assignments_path, low_memory=False)
     required_cols = {
         "source_file",
         "record_index",
@@ -235,15 +364,30 @@ def build_candidate_dataset(config: DatasetBuildConfig) -> pd.DataFrame:
 
     label_col = "selected_group_label" if "selected_group_label" in assignments.columns else "final_group_label"
     assignments = assignments.dropna(subset=["smiles", "resolved_groups", label_col]).copy()
+    assignments = _deduplicate_measurement_rows(assignments)
     assignments["molecule_key"] = assignments.apply(_molecule_key, axis=1)
 
     candidate_df = _build_candidate_rows(assignments)
     if candidate_df.empty:
         return candidate_df
+    truth_counts = candidate_df.groupby(
+        ["source_file", "record_index", "smiles", "pka_value"],
+        dropna=False,
+    )["is_true_site"].sum()
+    if not truth_counts.eq(1).all():
+        raise AssertionError(
+            "Every retained experimental measurement must map to exactly one "
+            "candidate site/transition"
+        )
 
     # Per-label priors (original)
     priors = _load_intrinsic_group_priors(config.summary_path)
-    candidate_df = candidate_df.merge(priors, on="candidate_training_group_label", how="left")
+    candidate_df = candidate_df.merge(
+        priors,
+        on="candidate_training_group_label",
+        how="left",
+        validate="many_to_one",
+    )
 
     # Family-level priors — ensures conjugate pair members share the same
     # reference pKa / pKaH instead of one getting the garbage median fill.
@@ -252,7 +396,12 @@ def build_candidate_dataset(config: DatasetBuildConfig) -> pd.DataFrame:
             lambda lbl: CONJUGATE_FAMILY_MAP.get(lbl, lbl)
         )
     family_priors = _build_family_priors(config.summary_path)
-    candidate_df = candidate_df.merge(family_priors, on="candidate_family", how="left")
+    candidate_df = candidate_df.merge(
+        family_priors,
+        on="candidate_family",
+        how="left",
+        validate="many_to_one",
+    )
 
     # Textbook reference pKa / pKaH from ACIDIC_PKA (via conjugate mapping).
     # This provides a chemically-grounded fallback that is specific to each
