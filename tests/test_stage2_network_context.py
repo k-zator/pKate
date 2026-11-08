@@ -156,6 +156,42 @@ def test_complete_weak_molecule_label_is_marginalized_without_full_exact_weight(
     assert set(weak["supervision_scope"]) == {"weak_molecule_macro_marginalized"}
 
 
+def test_unordered_macro_set_is_jointly_matched_without_reusing_a_site():
+    row = _network_row()
+    row["weak_experimental_measurements_json"] = json.dumps([
+        {
+            "experimental_pka": 4.4,
+            "transition_row_id": "macro_1",
+            "source_measurement_scope": "unordered_molecule_macroscopic_pka_set",
+            "source_dataset": "pkahub",
+            "macro_set_id": "set_1",
+        },
+        {
+            "experimental_pka": 9.1,
+            "transition_row_id": "macro_2",
+            "source_measurement_scope": "unordered_molecule_macroscopic_pka_set",
+            "source_dataset": "pkahub",
+            "macro_set_id": "set_1",
+        },
+    ])
+    row["unresolved_ionizable_context_count"] = 0
+    full = build_stage2_site_table(pd.DataFrame([row]), anchored_only=False)
+
+    weak, blocked = build_stage2_weak_training_sites(pd.DataFrame([row]), full)
+
+    assert blocked.empty
+    assert len(weak) == 2
+    assert weak["site_id"].nunique() == 2
+    assert weak["sample_weight"].sum() == pytest.approx(0.40)
+    assert set(weak["supervision_scope"]) == {
+        "weak_molecule_macro_set_jointly_matched"
+    }
+    assert set(weak["weak_source_measurement_scope"]) == {
+        "unordered_molecule_macroscopic_pka_set"
+    }
+    assert set(weak["weak_source_dataset"]) == {"pkahub"}
+
+
 def test_weak_label_is_blocked_when_there_is_an_unenumerated_candidate_context():
     row = _network_row()
     row["weak_experimental_measurements_json"] = json.dumps([{

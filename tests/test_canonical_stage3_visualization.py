@@ -92,6 +92,46 @@ def test_combines_stage1_and_stage2_validation_errors_with_stage3_context():
     assert "source drawing" in table
 
 
+def test_stage1_supplement_keeps_its_oof_structure_without_stage3_row(tmp_path):
+    stage1 = pd.DataFrame([{
+        "molecule_id": "pkahub_1",
+        "site_id": "pkahub_site_1",
+        "candidate_label": "carboxyl",
+        "site_family": "carboxyl",
+        "experimental_anchor_pka": 4.2,
+        "pred_intrinsic_pka": 8.0,
+        "smiles": "CC(=O)O",
+        "mapped_smiles": "[CH3:1][C:2](=[O:3])[OH:4]",
+    }])
+    stage2 = pd.DataFrame(columns=[
+        "molecule_id", "site_id", "site_label", "site_family",
+        "experimental_anchor_pka", "stage2_supported_projected_macro_pka",
+    ])
+    result = build_pka_failure_table(
+        stage1, stage2, _stage3_context().iloc[0:0]
+    )
+
+    assert result.loc[0, "input_smiles"] == "CC(=O)O"
+    assert result.loc[0, "atom_mapped_smiles"] == "[CH3:1][C:2](=[O:3])[OH:4]"
+    rendered = render_gallery(
+        result,
+        "heldout_pka_errors",
+        tmp_path / "heldout.png",
+        tmp_path / "heldout.csv",
+        max_examples=10,
+    )
+    assert rendered == 1
+
+
+def test_missing_mapped_smiles_is_not_sent_to_rdkit():
+    mol, highlighted, colors = _mapped_molecule_and_highlights(
+        float("nan"), "[]", "[]"
+    )
+    assert mol is None
+    assert highlighted == []
+    assert colors == {}
+
+
 def test_experimental_pka_form_check_uses_protonated_acid_member():
     probability, form = _experimental_pka_implied_form(10.0, 7.4)
     assert probability == pytest.approx(0.997494, abs=1e-6)

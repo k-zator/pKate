@@ -13,7 +13,7 @@ from build_molecule_microstate_network_dataset import independent_site_macro_pka
 from stage2_network_context import project_macro_pkas_nonincreasing_with_fixed
 
 
-STAGE3_SCHEMA_VERSION = "1.6.0"
+STAGE3_SCHEMA_VERSION = "1.7.0"
 STAGE3_LOCAL_PKA_METHOD = (
     "direct_stage2_pairwise_free_energy_model"
 )

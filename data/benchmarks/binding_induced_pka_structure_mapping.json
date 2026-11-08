@@ -1,0 +1,121 @@
+{
+  "schema_version": "1.0.0",
+  "structure_source": "RCSB PDB mmCIF archive",
+  "download_url_template": "https://files.rcsb.org/download/{pdb}.cif",
+  "downloaded_on": "2026-10-21",
+  "target_group_aggregation": "mean over crystallographically repeated target groups",
+  "coupled_target_method": "two_site_centered_screened_coulomb_partition_midpoint",
+  "coupling_parameters": {
+    "dielectric": 20.0,
+    "debye_length_angstrom": 10.0,
+    "maximum_absolute_coupling_log10": 0.75,
+    "centering_ph": 7.0
+  },
+  "structure_sha256": {
+    "1BVV": "0c3a600078a50bb4e4b7a586d837948a55c3b4ac8625ecc8afed62a5e227f6df",
+    "1C5I": "6508e7e938ba8beba1c5d2a605fb345e4cc6cdd0e638e22dfe82d073123afe9c",
+    "1HHP": "729ee9d1b76cd75f2234c64ccfe46fd5eefc05b4e8dabb103298c8f94d47f2cb",
+    "1HPX": "64937533e6ca6384760fe9dd252276a338f5aadc2f88d2439e6f859755cb7d8a",
+    "1LYB": "bd1ab4496289220ca2cf5383ee403a9ba99c7c4d8564a599e54c14b6283ae98f",
+    "1LYW": "68d41beb891eb43f7a511892f9b917b34c9d351738a232bb21f667f45fbf7178",
+    "1PFZ": "e5a39287706ba14ef98f745beb0c1bde2e77a673f4dd5e423b4306896fe83a6f",
+    "1QBS": "0c09cb004a442019ff8df6c95e2dade62323f6a80e7b58505190b7e4566d8c10",
+    "1SME": "30468a4a397feb1245a98b860b3264e8dc98ab1f610e71cff9704258a92d4c08",
+    "2YAS": "4665b698057f9c79e68521e64f6164ab8807cea84dc53e6010d3b892350c15b7",
+    "3HVP": "485d3665ac95e5523a146ca43bf89171e544ef40bf974e49f9b8e8298c319ff9",
+    "6GCH": "65705c9930d8638c24ba066132bf37574ca41de09ba249add5317778f818755a"
+  },
+  "cases": [
+    {
+      "case_id": "BIND001",
+      "mapping_status": "resolved_with_homodimer_chain_convention",
+      "mapping_notes": "Unprimed holo site is author chain A; the unligated homodimer is represented by its crystallographic chain A.",
+      "apo": {"pdb": "3HVP", "target_groups": [[{"chain": "A", "residue_name": "ASP", "residue_id": "25"}]], "remove_residues": []},
+      "holo": {"pdb": "1HPX", "target_groups": [[{"chain": "A", "residue_name": "ASP", "residue_id": "25"}]], "remove_residues": []}
+    },
+    {
+      "case_id": "BIND002",
+      "mapping_status": "resolved_with_homodimer_chain_convention",
+      "mapping_notes": "Primed holo site is author chain B; the unligated homodimer is represented by its symmetry-equivalent crystallographic chain A.",
+      "apo": {"pdb": "3HVP", "target_groups": [[{"chain": "A", "residue_name": "ASP", "residue_id": "25"}]], "remove_residues": []},
+      "holo": {"pdb": "1HPX", "target_groups": [[{"chain": "B", "residue_name": "ASP", "residue_id": "25"}]], "remove_residues": []}
+    },
+    {
+      "case_id": "BIND003",
+      "mapping_status": "resolved_repeated_crystallographic_copies",
+      "mapping_notes": "Asp34/Asp214 combined midpoint is averaged over four apo and two holo protein copies.",
+      "apo": {"pdb": "1PFZ", "target_groups": [[{"chain": "A", "residue_name": "ASP", "residue_id": "34"}, {"chain": "A", "residue_name": "ASP", "residue_id": "214"}], [{"chain": "B", "residue_name": "ASP", "residue_id": "34"}, {"chain": "B", "residue_name": "ASP", "residue_id": "214"}], [{"chain": "C", "residue_name": "ASP", "residue_id": "34"}, {"chain": "C", "residue_name": "ASP", "residue_id": "214"}], [{"chain": "D", "residue_name": "ASP", "residue_id": "34"}, {"chain": "D", "residue_name": "ASP", "residue_id": "214"}]], "remove_residues": []},
+      "holo": {"pdb": "1SME", "target_groups": [[{"chain": "A", "residue_name": "ASP", "residue_id": "34"}, {"chain": "A", "residue_name": "ASP", "residue_id": "214"}], [{"chain": "B", "residue_name": "ASP", "residue_id": "34"}, {"chain": "B", "residue_name": "ASP", "residue_id": "214"}]], "remove_residues": []}
+    },
+    {
+      "case_id": "BIND004",
+      "mapping_status": "resolved_repeated_crystallographic_copies",
+      "mapping_notes": "His164 is averaged over four apo and two holo protein copies.",
+      "apo": {"pdb": "1PFZ", "target_groups": [[{"chain": "A", "residue_name": "HIS", "residue_id": "164"}], [{"chain": "B", "residue_name": "HIS", "residue_id": "164"}], [{"chain": "C", "residue_name": "HIS", "residue_id": "164"}], [{"chain": "D", "residue_name": "HIS", "residue_id": "164"}]], "remove_residues": []},
+      "holo": {"pdb": "1SME", "target_groups": [[{"chain": "A", "residue_name": "HIS", "residue_id": "164"}], [{"chain": "B", "residue_name": "HIS", "residue_id": "164"}]], "remove_residues": []}
+    },
+    {
+      "case_id": "BIND005",
+      "mapping_status": "resolved_repeated_crystallographic_copies",
+      "mapping_notes": "The source typo APS33/231 is mapped to the ASP33/ASP231 catalytic pair across mature two-chain enzyme copies.",
+      "apo": {"pdb": "1LYW", "target_groups": [[{"chain": "A", "residue_name": "ASP", "residue_id": "33"}, {"chain": "B", "residue_name": "ASP", "residue_id": "231"}], [{"chain": "C", "residue_name": "ASP", "residue_id": "33"}, {"chain": "D", "residue_name": "ASP", "residue_id": "231"}], [{"chain": "E", "residue_name": "ASP", "residue_id": "33"}, {"chain": "F", "residue_name": "ASP", "residue_id": "231"}], [{"chain": "G", "residue_name": "ASP", "residue_id": "33"}, {"chain": "H", "residue_name": "ASP", "residue_id": "231"}]], "remove_residues": []},
+      "holo": {"pdb": "1LYB", "target_groups": [[{"chain": "A", "residue_name": "ASP", "residue_id": "33"}, {"chain": "B", "residue_name": "ASP", "residue_id": "231"}], [{"chain": "C", "residue_name": "ASP", "residue_id": "33"}, {"chain": "D", "residue_name": "ASP", "residue_id": "231"}]], "remove_residues": []}
+    },
+    {
+      "case_id": "BIND006",
+      "mapping_status": "resolved_repeated_crystallographic_copies",
+      "mapping_notes": "His77 is averaged over four apo and two holo copies.",
+      "apo": {"pdb": "1LYW", "target_groups": [[{"chain": "A", "residue_name": "HIS", "residue_id": "77"}], [{"chain": "C", "residue_name": "HIS", "residue_id": "77"}], [{"chain": "E", "residue_name": "HIS", "residue_id": "77"}], [{"chain": "G", "residue_name": "HIS", "residue_id": "77"}]], "remove_residues": []},
+      "holo": {"pdb": "1LYB", "target_groups": [[{"chain": "A", "residue_name": "HIS", "residue_id": "77"}], [{"chain": "C", "residue_name": "HIS", "residue_id": "77"}]], "remove_residues": []}
+    },
+    {
+      "case_id": "BIND007",
+      "mapping_status": "resolved_repeated_crystallographic_copies",
+      "mapping_notes": "Glu260 is averaged over four apo and two holo copies.",
+      "apo": {"pdb": "1LYW", "target_groups": [[{"chain": "B", "residue_name": "GLU", "residue_id": "260"}], [{"chain": "D", "residue_name": "GLU", "residue_id": "260"}], [{"chain": "F", "residue_name": "GLU", "residue_id": "260"}], [{"chain": "H", "residue_name": "GLU", "residue_id": "260"}]], "remove_residues": []},
+      "holo": {"pdb": "1LYB", "target_groups": [[{"chain": "B", "residue_name": "GLU", "residue_id": "260"}], [{"chain": "D", "residue_name": "GLU", "residue_id": "260"}]], "remove_residues": []}
+    },
+    {
+      "case_id": "BIND008",
+      "mapping_status": "resolved_ligand_removal_control",
+      "mapping_notes": "The apo control removes DMP A323 from the holo coordinates; both catalytic Asp25 chains form the combined target.",
+      "apo": {"pdb": "1QBS", "target_groups": [[{"chain": "A", "residue_name": "ASP", "residue_id": "25"}, {"chain": "B", "residue_name": "ASP", "residue_id": "25"}]], "remove_residues": [{"chain": "A", "residue_name": "DMP", "residue_id": "323"}]},
+      "holo": {"pdb": "1QBS", "target_groups": [[{"chain": "A", "residue_name": "ASP", "residue_id": "25"}, {"chain": "B", "residue_name": "ASP", "residue_id": "25"}]], "remove_residues": []}
+    },
+    {
+      "case_id": "BIND009",
+      "mapping_status": "resolved_with_missing_apo_symmetry_mate_caveat",
+      "mapping_notes": "1HHP contains one author chain; its site pKa approximates the symmetric apo combined midpoint, while 1QBS uses the explicit A/B dyad.",
+      "apo": {"pdb": "1HHP", "target_groups": [[{"chain": "A", "residue_name": "ASP", "residue_id": "25"}]], "remove_residues": []},
+      "holo": {"pdb": "1QBS", "target_groups": [[{"chain": "A", "residue_name": "ASP", "residue_id": "25"}, {"chain": "B", "residue_name": "ASP", "residue_id": "25"}]], "remove_residues": []}
+    },
+    {
+      "case_id": "BIND010",
+      "mapping_status": "resolved_ligand_removal_control",
+      "mapping_notes": "The apo control removes APF G246 from the 6GCH coordinates.",
+      "apo": {"pdb": "6GCH", "target_groups": [[{"chain": "F", "residue_name": "HIS", "residue_id": "57"}]], "remove_residues": [{"chain": "G", "residue_name": "APF", "residue_id": "246"}]},
+      "holo": {"pdb": "6GCH", "target_groups": [[{"chain": "F", "residue_name": "HIS", "residue_id": "57"}]], "remove_residues": []}
+    },
+    {
+      "case_id": "BIND011",
+      "mapping_status": "resolved_ligand_removal_control",
+      "mapping_notes": "The apo control removes the DFX B1 and XYP B2 inhibitor fragments.",
+      "apo": {"pdb": "1BVV", "target_groups": [[{"chain": "A", "residue_name": "GLU", "residue_id": "172"}]], "remove_residues": [{"chain": "B", "residue_name": "DFX", "residue_id": "1"}, {"chain": "B", "residue_name": "XYP", "residue_id": "2"}]},
+      "holo": {"pdb": "1BVV", "target_groups": [[{"chain": "A", "residue_name": "GLU", "residue_id": "172"}]], "remove_residues": []}
+    },
+    {
+      "case_id": "BIND012",
+      "mapping_status": "resolved_ligand_removal_control",
+      "mapping_notes": "The apo control removes DFX B1 and XYP B2; Asp35/Glu172 are evaluated as a coupled midpoint.",
+      "apo": {"pdb": "1C5I", "target_groups": [[{"chain": "A", "residue_name": "ASP", "residue_id": "35"}, {"chain": "A", "residue_name": "GLU", "residue_id": "172"}]], "remove_residues": [{"chain": "B", "residue_name": "DFX", "residue_id": "1"}, {"chain": "B", "residue_name": "XYP", "residue_id": "2"}]},
+      "holo": {"pdb": "1C5I", "target_groups": [[{"chain": "A", "residue_name": "ASP", "residue_id": "35"}, {"chain": "A", "residue_name": "GLU", "residue_id": "172"}]], "remove_residues": []}
+    },
+    {
+      "case_id": "BIND013",
+      "mapping_status": "resolved_ligand_removal_control",
+      "mapping_notes": "The apo control removes the SCN A300 reaction-intermediate analogue; sulfate ions remain part of both environments.",
+      "apo": {"pdb": "2YAS", "target_groups": [[{"chain": "A", "residue_name": "HIS", "residue_id": "235"}]], "remove_residues": [{"chain": "A", "residue_name": "SCN", "residue_id": "300"}]},
+      "holo": {"pdb": "2YAS", "target_groups": [[{"chain": "A", "residue_name": "HIS", "residue_id": "235"}]], "remove_residues": []}
+    }
+  ]
+}

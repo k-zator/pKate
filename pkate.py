@@ -47,6 +47,7 @@ os.environ.setdefault(
 
 PROJECT_ROOT = Path(__file__).resolve().parent
 SCRIPTS_DIR = PROJECT_ROOT / "scripts"
+__version__ = "0.2.0"
 if str(SCRIPTS_DIR) not in sys.path:
     # The research modules predate the public API and are intentionally kept in
     # scripts/ for now.  Resolve them relative to this file, never the caller's
@@ -72,6 +73,11 @@ from microstate_enumerator import (  # noqa: E402
 )
 from pka_evidence_policy import (  # noqa: E402
     unresolved_ionizable_contexts,
+)
+from protein_environment_correction import (  # noqa: E402
+    DEFAULT_ENVIRONMENT_MODEL,
+    LigandSelector,
+    apply_protein_environment_file,
 )
 from stage1_network_inference import (  # noqa: E402
     load_stage1_bundle,
@@ -149,6 +155,7 @@ class PredictionResult:
     dominant_microstate_smiles: Optional[str]
     dominant_atom_mapped_smiles: Optional[str]
     dominant_formal_charge: Optional[int]
+    dominant_protein_site_forms: Dict[str, str]
     dominant_configuration_probability: Optional[float]
     dominant_complete_microstate_heuristic_weight: Optional[float]
     site_predictions: Tuple[Dict[str, Any], ...]
@@ -235,6 +242,14 @@ def _parse_json_list(value: object) -> list:
     return parsed if isinstance(parsed, list) else []
 
 
+def _parse_json_dict(value: object) -> Dict[str, Any]:
+    try:
+        parsed = json.loads(str(value))
+    except (TypeError, ValueError, json.JSONDecodeError):
+        return {}
+    return parsed if isinstance(parsed, dict) else {}
+
+
 def _unmapped_smiles(atom_mapped_smiles: object) -> Optional[str]:
     if atom_mapped_smiles is None or pd.isna(atom_mapped_smiles):
         return None
@@ -291,6 +306,7 @@ def _no_site_result(
         dominant_formal_charge=int(
             sum(atom.GetFormalCharge() for atom in molecule.GetAtoms())
         ),
+        dominant_protein_site_forms={},
         dominant_configuration_probability=1.0,
         dominant_complete_microstate_heuristic_weight=1.0,
         site_predictions=(),
@@ -606,8 +622,22 @@ def _site_payload(row: pd.Series) -> Dict[str, Any]:
     )
     return {
         "site_id": str(row["site_id"]),
+        "component_type": str(row.get("component_type", "ligand")),
         "site_label": str(row["site_label"]),
         "site_family": str(row["site_family"]),
+        "protein_residue": (
+            None
+            if str(row.get("component_type", "ligand")) != "protein_residue"
+            else {
+                "chain": str(row.get("protein_chain", "")),
+                "name": str(row.get("protein_residue_name", "")),
+                "number": str(row.get("protein_residue_id", "")),
+                "insertion_code": str(row.get("protein_insertion_code", "")),
+                "nearest_ligand_site_distance_angstrom": _optional_float(
+                    row.get("protein_nearest_ligand_site_distance_angstrom")
+                ),
+            }
+        ),
         "atom_maps": _parse_json_list(row.get("site_atom_maps_json", "[]")),
         "center_atom_maps": _parse_json_list(
             row.get("site_center_maps_json", "[]")
@@ -653,6 +683,57 @@ def _site_payload(row: pd.Series) -> Dict[str, Any]:
         "stage2_prediction_confidence": str(
             row.get("stage2_prediction_confidence", "unknown")
         ),
+        "aqueous_predicted_macroscopic_pka": _optional_float(
+            row.get("aqueous_stage2_predicted_macro_pka")
+        ),
+        "aqueous_stage2_one_body_pka": _optional_float(
+            row.get("aqueous_stage2_one_body_pka")
+        ),
+        "protein_environment_applied": _optional_bool(
+            row.get("protein_environment_applied", False)
+        ),
+        "protein_environment_evaluated": _optional_bool(
+            row.get("protein_environment_evaluated", False)
+        ),
+        "protein_environment_chemistry": (
+            None
+            if pd.isna(row.get("protein_environment_chemistry"))
+            else str(row.get("protein_environment_chemistry"))
+        ),
+        "protein_environment_delta_pka": _optional_float(
+            row.get("protein_environment_delta_pka")
+        ),
+        "protein_environment_delta_pka_p90_error": _optional_float(
+            row.get("protein_environment_delta_pka_p90_error")
+        ),
+        "protein_environment_confidence": _optional_float(
+            row.get("protein_environment_confidence_score")
+        ),
+        "protein_environment_confidence_tier": (
+            "not_applied"
+            if pd.isna(row.get("protein_environment_confidence_tier"))
+            else str(row.get("protein_environment_confidence_tier"))
+        ),
+        "protein_environment_transfer_basis": (
+            None
+            if pd.isna(row.get("protein_environment_transfer_basis"))
+            else str(row.get("protein_environment_transfer_basis"))
+        ),
+        "protein_environment_representation_correction_scale": _optional_float(
+            row.get("protein_environment_representation_correction_scale")
+        ),
+        "protein_environment_representation_calibration_tier": (
+            None
+            if pd.isna(row.get(
+                "protein_environment_representation_calibration_tier"
+            ))
+            else str(row.get(
+                "protein_environment_representation_calibration_tier"
+            ))
+        ),
+        "protein_environment_descriptors": _parse_json_dict(
+            row.get("protein_environment_descriptors_json", "{}")
+        ),
     }
 
 
@@ -685,6 +766,7 @@ def _result_from_outputs(
     persistent_output_dir: Optional[Path],
     unresolved_contexts: Sequence[Dict],
     top_tautomers: int,
+    protein_environment_report: Optional[Dict[str, Any]] = None,
 ) -> PredictionResult:
     if molecule_table.empty:
         raise RuntimeError("Stage 3 returned no molecule-level prediction row")
@@ -762,6 +844,11 @@ def _result_from_outputs(
         warnings.append(
             "Low-confidence site calls: " + ", ".join(low_confidence_sites)
         )
+    if protein_environment_report is not None:
+        warnings.append(
+            "The protein-residue one-body shifts use PKAD-R calibration; ligand shifts "
+            "use analogue transfer, and dynamic protein pair couplings are heuristic."
+        )
 
     provenance: Dict[str, Any] = {
         "prediction_mode": "unseen_molecule_no_experimental_query_labels",
@@ -775,6 +862,8 @@ def _result_from_outputs(
         "marvin_values_used": False,
         "epik_values_used": False,
     }
+    if protein_environment_report is not None:
+        provenance["protein_environment"] = protein_environment_report
     if persistent_output_dir is not None:
         provenance["output_directory"] = str(persistent_output_dir)
 
@@ -787,6 +876,12 @@ def _result_from_outputs(
         dominant_microstate_smiles=_unmapped_smiles(dominant_mapped),
         dominant_atom_mapped_smiles=dominant_mapped,
         dominant_formal_charge=_optional_int(row.get("stage3_dominant_formal_charge")),
+        dominant_protein_site_forms={
+            str(key): str(value)
+            for key, value in _parse_json_dict(
+                row.get("stage3_dominant_protein_site_forms_json", "{}")
+            ).items()
+        },
         dominant_configuration_probability=_optional_float(
             row.get("stage3_dominant_population")
         ),
@@ -814,6 +909,20 @@ def predict(
     ),
     tautomer_score_temperature: float = DEFAULT_TAUTOMER_SCORE_TEMPERATURE,
     top_tautomers: int = 5,
+    protein_structure: Optional[str | Path] = None,
+    ligand_structure: Optional[str | Path] = None,
+    protein_environment_model: Optional[str | Path] = None,
+    ligand_chain: Optional[str] = None,
+    ligand_resname: Optional[str] = None,
+    ligand_resid: Optional[str] = None,
+    joint_protein_sites: bool = True,
+    joint_protein_radius: float = 8.0,
+    max_joint_protein_sites: int = 6,
+    max_joint_nodes: int = 4096,
+    joint_coupling_dielectric: float = 20.0,
+    joint_coupling_debye_length: float = 10.0,
+    joint_max_abs_coupling: float = 0.75,
+    joint_coupling_reference_ph: float = 7.0,
 ) -> PredictionResult:
     """Predict pKₐ values and the complete microstate of one unseen molecule.
 
@@ -830,6 +939,18 @@ def predict(
         If supplied, retain all canonical network, site, tautomer, metrics, and
         provenance artifacts. Otherwise intermediates live in a temporary
         directory and only the structured result is returned.
+    protein_structure, ligand_structure:
+        Optional coordinate files for an explicit protein--ligand complex.
+        Both are required to opt into the protein-environment correction.  The
+        protein may be PDB/mmCIF (optionally gzipped); the posed ligand may be
+        SDF/MOL/MOL2/PDB and must share its coordinate frame.
+    protein_environment_model:
+        Optional override for the calibrated protein-residue residual model.
+        Ignored unless complex coordinates are supplied.
+    joint_protein_sites:
+        With complex coordinates, jointly enumerate nearby Asp/Glu/His/Lys/
+        Cys/Tyr protonation coordinates.  Enumeration is bounded by
+        ``max_joint_protein_sites`` and ``max_joint_nodes``.
 
     Returns
     -------
@@ -860,6 +981,38 @@ def predict(
         1,
     )
     returned_tautomer_cap = _integer_parameter(top_tautomers, "top_tautomers", 0)
+    joint_radius = _finite_number(joint_protein_radius, "joint_protein_radius")
+    joint_site_cap = _integer_parameter(
+        max_joint_protein_sites, "max_joint_protein_sites", 0
+    )
+    joint_node_cap = _integer_parameter(max_joint_nodes, "max_joint_nodes", 1)
+    joint_dielectric = _finite_number(
+        joint_coupling_dielectric, "joint_coupling_dielectric"
+    )
+    joint_debye_length = _finite_number(
+        joint_coupling_debye_length, "joint_coupling_debye_length"
+    )
+    joint_coupling_cap = _finite_number(
+        joint_max_abs_coupling, "joint_max_abs_coupling"
+    )
+    joint_reference_ph = _finite_number(
+        joint_coupling_reference_ph, "joint_coupling_reference_ph"
+    )
+    if joint_radius <= 0.0:
+        raise ValueError("joint_protein_radius must be greater than zero")
+    if joint_dielectric <= 0.0:
+        raise ValueError("joint_coupling_dielectric must be greater than zero")
+    if joint_debye_length <= 0.0:
+        raise ValueError("joint_coupling_debye_length must be greater than zero")
+    if joint_coupling_cap < 0.0:
+        raise ValueError("joint_max_abs_coupling cannot be negative")
+    environment_requested = protein_structure is not None or ligand_structure is not None
+    if environment_requested and (
+        protein_structure is None or ligand_structure is None
+    ):
+        raise ValueError(
+            "protein_structure and ligand_structure must be supplied together"
+        )
 
     input_smiles = smiles.strip()
     molecule = Chem.MolFromSmiles(input_smiles)
@@ -893,6 +1046,8 @@ def predict(
         stage1_network_path = work_dir / "query_stage1_network.csv"
         stage2_network_path = work_dir / "query_stage2_network.csv"
         stage2_report_path = work_dir / "stage2_application_metrics.json"
+        stage2_environment_path = work_dir / "query_stage2_protein_environment.csv"
+        environment_report_path = work_dir / "protein_environment_report.json"
         stage3_molecule_path = work_dir / "query_stage3_molecule.csv"
         stage3_dir = work_dir / "stage3"
 
@@ -916,8 +1071,39 @@ def predict(
             allow_compatible_network=True,
             report_path=str(stage2_report_path),
         )
+        stage3_input_path = stage2_network_path
+        environment_report = None
+        if environment_requested:
+            environment_model_path = Path(
+                protein_environment_model
+                if protein_environment_model is not None
+                else PROJECT_ROOT / DEFAULT_ENVIRONMENT_MODEL
+            )
+            _, environment_report = apply_protein_environment_file(
+                stage2_network_path,
+                stage2_environment_path,
+                query_molecule=molecule,
+                protein_structure_path=Path(protein_structure),
+                ligand_structure_path=Path(ligand_structure),
+                model_path=environment_model_path,
+                ligand_selector=LigandSelector(
+                    chain=ligand_chain,
+                    residue_name=ligand_resname,
+                    residue_id=ligand_resid,
+                ),
+                joint_protein_sites=bool(joint_protein_sites),
+                joint_protein_radius=joint_radius,
+                maximum_joint_protein_sites=joint_site_cap,
+                maximum_joint_nodes=joint_node_cap,
+                joint_coupling_dielectric=joint_dielectric,
+                joint_coupling_debye_length=joint_debye_length,
+                joint_maximum_absolute_coupling=joint_coupling_cap,
+                joint_coupling_reference_ph=joint_reference_ph,
+                report_path=environment_report_path,
+            )
+            stage3_input_path = stage2_environment_path
         molecule_table, _ = apply_stage3(
-            input_path=str(stage2_network_path),
+            input_path=str(stage3_input_path),
             stage2_model_path=str(model_artifacts.stage2_model),
             output_path=str(stage3_molecule_path),
             out_dir=str(stage3_dir),
@@ -960,6 +1146,7 @@ def predict(
             persistent_output_dir=persistent_dir,
             unresolved_contexts=unresolved,
             top_tautomers=returned_tautomer_cap,
+            protein_environment_report=environment_report,
         )
         if persistent_dir is not None:
             summary_path = persistent_dir / "prediction.json"
@@ -974,6 +1161,11 @@ calculate_pkas = predict
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Predict pKa values and the dominant microstate of one molecule."
+    )
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"%(prog)s {__version__}",
     )
     parser.add_argument("smiles", help="Input molecule as a SMILES string")
     parser.add_argument("--ph", type=float, default=7.4, help="Requested pH (default: 7.4)")
@@ -992,18 +1184,76 @@ def _parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Print compact rather than indented JSON",
     )
+    parser.add_argument(
+        "--protein",
+        help="Protein coordinates (PDB/mmCIF, optionally gzipped)",
+    )
+    parser.add_argument(
+        "--ligand",
+        help="Posed ligand coordinates (SDF/MOL/MOL2/PDB) in the protein frame",
+    )
+    parser.add_argument(
+        "--protein-environment-model",
+        help="Override the optional protein-environment model artifact",
+    )
+    parser.add_argument("--ligand-chain", help="Ligand chain in the protein file")
+    parser.add_argument("--ligand-resname", help="Ligand residue name in the protein file")
+    parser.add_argument("--ligand-resid", help="Ligand residue number in the protein file")
+    parser.add_argument(
+        "--no-joint-protein-sites",
+        action="store_true",
+        help="Apply environment shifts without enumerating nearby protein residues",
+    )
+    parser.add_argument(
+        "--joint-protein-radius",
+        type=float,
+        default=8.0,
+        help="Protein-residue enumeration radius in angstrom (default: 8.0)",
+    )
+    parser.add_argument(
+        "--max-joint-protein-sites",
+        type=int,
+        default=6,
+        help="Maximum explicit protein protonation coordinates (default: 6)",
+    )
+    parser.add_argument(
+        "--max-joint-nodes",
+        type=int,
+        default=4096,
+        help="Maximum ligand x protein configuration count (default: 4096)",
+    )
     return parser
 
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
     """Run the single-molecule CLI and print its JSON result."""
     args = _parser().parse_args(argv)
-    result = predict(
-        args.smiles,
-        ph=args.ph,
-        output_dir=args.output_dir,
-        top_tautomers=args.top_tautomers,
-    )
+    prediction_options: Dict[str, Any] = {
+        "ph": args.ph,
+        "output_dir": args.output_dir,
+        "top_tautomers": args.top_tautomers,
+    }
+    optional_complex_arguments = {
+        "protein_structure": args.protein,
+        "ligand_structure": args.ligand,
+        "protein_environment_model": args.protein_environment_model,
+        "ligand_chain": args.ligand_chain,
+        "ligand_resname": args.ligand_resname,
+        "ligand_resid": args.ligand_resid,
+    }
+    prediction_options.update({
+        key: value
+        for key, value in optional_complex_arguments.items()
+        if value is not None
+    })
+    if args.protein is not None or args.ligand is not None:
+        prediction_options.update({
+            "joint_protein_sites": not args.no_joint_protein_sites,
+            "joint_protein_radius": args.joint_protein_radius,
+            "max_joint_protein_sites": args.max_joint_protein_sites,
+            "max_joint_nodes": args.max_joint_nodes,
+        })
+    result = predict(args.smiles, **prediction_options)
     print(
         json.dumps(
             result.to_dict(),

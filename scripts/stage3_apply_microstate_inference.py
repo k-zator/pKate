@@ -110,16 +110,47 @@ STAGE3_OUTPUT_CONTRACT = {
             "90% residual interval around the deployment scalar macro-pKa prediction, "
             "using exact-label/family/global scaffold-held-out residual shrinkage"
         ),
+        "aqueous_stage2_predicted_macro_pka": (
+            "pre-environment Stage 2 macro pKa; populated only when the optional "
+            "protein-environment correction is applied"
+        ),
+        "protein_environment_delta_pka": (
+            "shrunk protein-residue-to-ligand analogue correction added to the "
+            "Stage 2 one-body term; not direct bound-ligand supervision"
+        ),
+        "protein_environment_delta_pka_p90_error": (
+            "homology-held-out residue error plus ligand-transfer penalty"
+        ),
     },
     "compatibility_aliases": {
         "stage3_effective_local_pka": "stage3_one_body_pka",
         "stage3_effective_local_pka_ci_low": "stage3_one_body_pka_interval_low",
         "stage3_effective_local_pka_ci_high": "stage3_one_body_pka_interval_high",
     },
+    "joint_protein_fields": {
+        "component_type": (
+            "ligand or protein_residue; protein identity fields are populated "
+            "only for explicit nearby side-chain coordinates"
+        ),
+        "stage3_dominant_protein_site_forms_json": (
+            "protein residue forms in the same dominant joint configuration as "
+            "the reported ligand microstate"
+        ),
+        "stage3_joint_protein_site_count": (
+            "number of explicit protein protonation coordinates"
+        ),
+    },
     "uncertainty_note": (
         "one-body and probability intervals remain sensitivity intervals. The separate "
         "empirical pKa-side confidence uses scaffold-held-out signed residuals and is a "
         "proxy for state-call reliability, not direct microstate-state validation."
+    ),
+    "protein_environment_note": (
+        "Optional environment corrections are trained on protein side-chain pKa "
+        "residuals and transferred conservatively to supported ligand analogues. "
+        "Nearby standard titratable residues may also be explicit binary coordinates; "
+        "their one-body terms use direct residue calibration, while dynamic pair "
+        "couplings are labelled screened-Coulomb approximations."
     ),
     "tautomer_note": (
         "The physically modeled dominant protonation configuration is selected first, "
@@ -245,11 +276,12 @@ def _site_state_confidence(
         else 0.30
     )
     reconstruction_factor = 0.0 if not network_complete else math.exp(-gap)
+    identifiability = str(pair_coupling_identifiability)
     identifiability_factor = (
-        0.65
-        if str(pair_coupling_identifiability).startswith(
-            "regularized_prior_dependent"
-        )
+        0.55
+        if "heuristic_centered_screened_coulomb" in identifiability
+        else 0.65
+        if identifiability.startswith("regularized_prior_dependent")
         else 1.0
     )
     overall_confidence = float(
@@ -809,16 +841,46 @@ def apply_stage3(
             )
             uncertainty_crossing_site_states += int(uncertainty_crosses is True)
             predicted_site_form = _predicted_site_form(probability)
-            calibration_source = (
-                "stage1_single_site" if len(all_site_ids) == 1 else "stage2_multisite"
-            )
             calibration_point_pka = (
                 float(predicted_macro)
                 if predicted_macro is not None
                 else float(site["stage1_intrinsic_pka"])
             )
-            empirical_site_calibration = (
-                calibrate_site_call(
+            component_type = str(site.get("component_type", "ligand"))
+            if probability is None:
+                empirical_site_calibration = None
+            elif component_type == "protein_residue":
+                # Protein sites have direct homology-held-out residue residual
+                # calibration.  Do not pass them through the aqueous ligand
+                # label/family calibration hierarchy.
+                sigma = max(macro_half_width / 1.645, 1.0e-6)
+                z_score = (calibration_point_pka - float(ph)) / sigma
+                probability_pka_above_ph = float(
+                    0.5 * (1.0 + math.erf(z_score / math.sqrt(2.0)))
+                )
+                side_confidence = (
+                    probability_pka_above_ph
+                    if predicted_site_form == "acid_form"
+                    else 1.0 - probability_pka_above_ph
+                )
+                empirical_site_calibration = {
+                    "predicted_site_form_pka_side_confidence": side_confidence,
+                    "probability_observed_pka_at_or_above_ph": (
+                        probability_pka_above_ph
+                    ),
+                    "empirical_macro_pka_interval_90_low": macro_low,
+                    "empirical_macro_pka_interval_90_high": macro_high,
+                    "source": "protein_environment_grouped_oof_calibration",
+                    "scope": "direct_standard_protein_residue",
+                    "label_rows": 0,
+                    "family_rows": 0,
+                }
+            else:
+                calibration_source = (
+                    "stage1_single_site"
+                    if len(all_site_ids) == 1 else "stage2_multisite"
+                )
+                empirical_site_calibration = calibrate_site_call(
                     empirical_calibration,
                     source_name=calibration_source,
                     site_label=str(site["label"]),
@@ -827,8 +889,6 @@ def apply_stage3(
                     ph=float(ph),
                     predicted_site_form=predicted_site_form,
                 )
-                if probability is not None else None
-            )
             empirical_call_confidence = (
                 float(empirical_site_calibration[
                     "predicted_site_form_pka_side_confidence"
@@ -850,6 +910,25 @@ def apply_stage3(
                     pair_coupling_identifiability=identifiability_status,
                 )
             )
+            # Environment confidence includes either direct bound-ligand
+            # calibration (when its strict gate has passed) or the more
+            # conservative protein-residue analogue transfer.
+            if bool(site.get("protein_environment_applied", False)):
+                environment_factor = float(
+                    site.get("protein_environment_confidence_score", 0.0)
+                )
+                environment_factor = max(0.0, min(1.0, environment_factor))
+                overall_confidence *= environment_factor
+                overall_tier = _confidence_tier(overall_confidence)
+                confidence_components["protein_environment_factor"] = (
+                    environment_factor
+                )
+                confidence_components[
+                    "protein_environment_direct_bound_ligand_calibration"
+                ] = bool(site.get(
+                    "protein_environment_uses_direct_bound_ligand_calibration",
+                    False,
+                ))
             empirical_centered_evidence = float(
                 confidence_components["empirical_pka_side_centered_evidence"]
             )
@@ -964,8 +1043,16 @@ def apply_stage3(
                 "input_smiles": str(row["representative_input_smiles"]),
                 "atom_mapped_smiles": str(row["representative_atom_mapped_smiles"]),
                 "site_id": site_id,
+                "component_type": component_type,
                 "site_label": str(site["label"]),
                 "site_family": str(site["family"]),
+                "protein_chain": site.get("protein_chain"),
+                "protein_residue_name": site.get("protein_residue_name"),
+                "protein_residue_id": site.get("protein_residue_id"),
+                "protein_insertion_code": site.get("protein_insertion_code"),
+                "protein_nearest_ligand_site_distance_angstrom": site.get(
+                    "protein_nearest_ligand_site_distance_angstrom"
+                ),
                 # This is the selected site's form in the representative source
                 # drawing, not an experimental equilibrium-state observation.
                 "input_member_form": site.get("input_member_form"),
@@ -983,6 +1070,48 @@ def apply_stage3(
                 "stage2_applied": bool(site.get("stage2_applied", False)),
                 "stage2_prediction_confidence": site.get("stage2_prediction_confidence"),
                 "stage2_pair_coupling_identifiability": identifiability_status,
+                "aqueous_stage2_one_body_pka": site.get(
+                    "aqueous_stage2_one_body_pka"
+                ),
+                "aqueous_stage2_predicted_macro_pka": site.get(
+                    "aqueous_stage2_predicted_macro_pka"
+                ),
+                "protein_environment_applied": bool(
+                    site.get("protein_environment_applied", False)
+                ),
+                "protein_environment_evaluated": bool(
+                    site.get("protein_environment_evaluated", False)
+                ),
+                "protein_environment_chemistry": site.get(
+                    "protein_environment_chemistry"
+                ),
+                "protein_environment_delta_pka": site.get(
+                    "protein_environment_delta_pka"
+                ),
+                "protein_environment_delta_pka_p90_error": site.get(
+                    "protein_environment_delta_pka_p90_error"
+                ),
+                "protein_environment_confidence_score": site.get(
+                    "protein_environment_confidence_score"
+                ),
+                "protein_environment_confidence_tier": site.get(
+                    "protein_environment_confidence_tier"
+                ),
+                "protein_environment_transfer_basis": site.get(
+                    "protein_environment_transfer_basis"
+                ),
+                "protein_environment_transfer_shrinkage": site.get(
+                    "protein_environment_transfer_shrinkage"
+                ),
+                "protein_environment_representation_correction_scale": site.get(
+                    "protein_environment_representation_correction_scale"
+                ),
+                "protein_environment_representation_calibration_tier": site.get(
+                    "protein_environment_representation_calibration_tier"
+                ),
+                "protein_environment_descriptors_json": _json(
+                    site.get("protein_environment_descriptors", {})
+                ),
                 "stage3_one_body_pka": float(effective_pka),
                 "stage3_one_body_pka_interval_low": effective_low,
                 "stage3_one_body_pka_interval_high": effective_high,
@@ -1056,6 +1185,9 @@ def apply_stage3(
                 "stage3_empirical_calibration_sha256": empirical_calibration_sha256,
                 "stage3_overall_site_state_confidence": overall_confidence,
                 "stage3_overall_site_state_confidence_tier": overall_tier,
+                "stage3_confidence_components_json": _json(
+                    confidence_components
+                ),
                 "stage1_local_pka_confidence": local_support,
                 "stage1_applicability_domain": site.get("stage1_applicability_domain"),
                 "stage1_exact_label_training_rows": site.get("stage1_exact_label_training_rows"),
@@ -1089,6 +1221,21 @@ def apply_stage3(
             molecule_site_call_changes > 0
         )
 
+        protein_site_ids = {
+            str(site["site_id"])
+            for site in sites
+            if str(site.get("component_type", "ligand")) == "protein_residue"
+        }
+        dominant_protein_site_forms = (
+            {
+                site_id: site_form
+                for site_id, site_form in dict(
+                    dominant_complete_node.get("site_forms", {})
+                ).items()
+                if site_id in protein_site_ids
+            }
+            if dominant_complete_node else {}
+        )
         output = row.to_dict()
         output.update({
             "stage3_schema_version": STAGE3_SCHEMA_VERSION,
@@ -1150,6 +1297,10 @@ def apply_stage3(
             "stage3_dominant_formal_charge": (
                 dominant_complete_node.get("formal_charge")
                 if dominant_complete_node else None
+            ),
+            "stage3_joint_protein_site_count": int(len(protein_site_ids)),
+            "stage3_dominant_protein_site_forms_json": _json(
+                dominant_protein_site_forms
             ),
             "stage3_dominant_population": (
                 dominant_node.get("stage3_configuration_population_at_ph") if dominant_node else None
@@ -1290,7 +1441,18 @@ def apply_stage3(
             ).fillna(0).sum()
         ),
         "pair_coupling_identifiability": (
-            "regularized_prior_dependent_not_directly_measured"
+            "includes_heuristic_centered_screened_coulomb_not_directly_measured"
+            if (
+                not site_table.empty
+                and "component_type" in site_table
+                and site_table["component_type"].eq("protein_residue").any()
+            )
+            else "regularized_prior_dependent_not_directly_measured"
+        ),
+        "joint_protein_site_rows": int(
+            site_table.get(
+                "component_type", pd.Series(dtype=str)
+            ).eq("protein_residue").sum()
         ),
         "dominant_microstates_changed_by_pair_coupling_at_ph": int(
             dominant_microstates_changed_by_pair_coupling

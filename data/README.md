@@ -129,3 +129,127 @@ The two manually authored site-resolution override parts remain tracked under
 `processed/` for compatibility with the current release builder. The fast unit
 tests use synthetic temporary fixtures and do not require raw data or trained
 models.
+
+## Protein-environment research data
+
+Experimental protein-residue pKa tables and corresponding structure snapshots
+downloaded for the optional binding-environment correction are stored locally at
+`raw/external_datasets/protein_environment/`. They are ignored by Git and are
+not part of the aqueous pKate training pool. They train a separate, explicitly
+lower-confidence residual artifact when
+`scripts/train_protein_environment_model.py` is invoked. The acquisition
+record, quality findings, licensing cautions, and implementation boundary are in the
+[protein-environment data audit](../docs/PROTEIN_ENVIRONMENT_DATA_AUDIT.md).
+The trainer also writes an ignored 648-row calibration ledger: 643
+homology-grouped OOF predictions and five explicit missing-site-atom failures.
+
+The small committed
+[`benchmarks/binding_induced_pka_shifts.csv`](benchmarks/binding_induced_pka_shifts.csv)
+manifest is different: it contains 13 literature-derived experimental challenge
+targets, is explicitly evaluation-only, and is never selected by a trainer.
+Its committed
+[`structural mapping`](benchmarks/binding_induced_pka_structure_mapping.json)
+locks target chains/sites, ligand-removal controls, coupled-site semantics, and
+RCSB coordinate hashes. Acquire those ignored coordinate files with
+`python scripts/acquire_binding_shift_structures.py`.
+The PKAD-2 leakage audit and benchmark protocol are documented in the
+[protein-environment benchmark report](../docs/PROTEIN_ENVIRONMENT_BENCHMARK.md).
+
+PKAD-3 split-0 candidates are prepared with
+`scripts/prepare_pkad3_training_data.py`, and their 172 unique RCSB entries are
+acquired with `scripts/acquire_pkad3_structures.py`. All KaML computed features
+and `model_pka` are ignored. Exact PKAD-R sites are removed and pKate
+descriptors are recomputed. The current 990-row candidate fails the
+group-balanced deployment gate, so no PKAD-3 label enters the fitted model.
+
+The committed
+[`benchmarks/metalloprotein_pka_2026.csv`](benchmarks/metalloprotein_pka_2026.csv)
+contains 12 experimental, evaluation-only transitions from the 2026
+metalloprotein paper. It is never read by a trainer. The author SI can be
+checksum-acquired with
+`python scripts/acquire_metalloprotein_pka_supporting_information.py`; its
+CC BY-NC 4.0 coordinate archive and calculated-pKₐ tables remain ignored.
+`python scripts/benchmark_metalloprotein_pka.py --published-qm` scores the
+paper's external predictions without exposing them to fitting.
+
+## PLBD proton-linkage evidence
+
+Acquire and prepare the CC BY 4.0 PLBD snapshot with:
+
+```bash
+python scripts/acquire_plbd_data.py
+python scripts/prepare_plbd_proton_linkage.py
+```
+
+The pinned archive yields 225 experimental compound-pKₐ rows, 50 protein-pKₐ
+rows, 1,661 intrinsic-parameter rows, and 1,649 joined linkage constraints.
+Intrinsic binding parameters have already been corrected for linked
+protonation; they are suitable for consistency checks or weak evaluation, but
+are not direct measurements of a bound ligand's site pKₐ. Accordingly, PLBD
+contributes zero direct bound-ligand calibration rows.
+
+## Direct free/bound ligand calibration candidates
+
+[`curation/direct_bound_ligand_pka_candidates.csv`](curation/direct_bound_ligand_pka_candidates.csv)
+is a 15-case, row-level experimental literature registry. Acquire the seven
+exact mapped complexes and evaluate the fail-closed calibration gate with:
+
+```bash
+python scripts/acquire_direct_bound_ligand_structures.py
+python scripts/prepare_direct_bound_ligand_calibration.py
+python scripts/train_protein_environment_model.py
+```
+
+Methotrexate–DHFR (`3DFR`), trimethoprim–DHFR (`2HM9`), and five human
+GST–glutathione structures (`1PKW`, `1TDI`, `1XW6`, `1XW5`, and `5GSS`)
+currently meet the exact-label, exact-ligand, exact-structure, and mapped-atom
+criteria. Homologous GSTs share groups, so these seven rows represent four
+protein groups and two chemistries, below the required 12 rows, six protein
+groups, and three chemistries. The direct calibration gate is therefore closed
+and the protein-environment bundle records zero deployed direct rows.
+
+## pKahub candidate expansion
+
+The pKahub aggregate is an optional, provenance-gated supplement. Its
+experimental macroscopic values are useful, but almost all published
+charge-transition assignments were generated with Epik and never serve as
+independent pKate labels. Download `all_datasets.tsv` from the
+[pKahub datasets page](https://pkahub.ttk.hu/datasets) into
+`raw/external_datasets/pkahub/`, then run:
+
+```bash
+python scripts/audit_pkahub_transition_assignability.py
+python scripts/prepare_pkahub_training_data.py
+python scripts/stage1_train_intrinsic_pka.py
+python scripts/build_molecule_microstate_network_dataset.py
+python scripts/stage2_train_network_context.py
+```
+
+The raw and derived files are ignored and remain subject to their source-level
+terms. Stage 1 and Stage 2 each have a canonical-only performance gate; a
+supplement is fitted only when the corresponding exact-label holdout does not
+worsen. The current build deploys 4,801 single-transition Stage 1 rows and
+14,247 complete macro-site Stage 2 rows at capped weights; 8,467 weak rows with
+incomplete state spaces remain blocked. The methodology, snapshot counts,
+transition-certainty classes, and safe integration boundary are documented in the
+[pKahub transition-assignment survey](../docs/PKAHUB_TRANSITION_ASSIGNMENT_SURVEY.md).
+
+## CASP16 ligand pKa and complex provenance
+
+Acquire and prepare the CASP16 pharmaceutical ligand release with:
+
+```bash
+python scripts/acquire_casp16_pka_data.py
+python scripts/prepare_casp16_training_data.py
+python scripts/acquire_casp16_complex_structures.py
+```
+
+Only numeric experimental `PKA1`/`PKA2` fields are eligible. ADMET Predictor
+columns are always ignored. Thirty-two single-transition rows pass the joint
+Stage 1 supplemental gate. The five macro values on three multisite molecules
+now have complete four-state networks after plain indole was classified as an
+extreme-range context rather than an unresolved basic site; the Stage 2 gate
+nevertheless rejects those five rows because canonical scaffold MAE worsens.
+The 18 associated complexes preserve mapping provenance but are ineligible for
+protein-environment fitting because the reported ligand pKas are not identified
+as bound-state measurements.

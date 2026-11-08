@@ -1,0 +1,8 @@
+{
+  "approximate_rows": 3,
+  "evaluation_only": true,
+  "exact_rows": 8,
+  "panel_rows": 12,
+  "status": "validated_without_predictions",
+  "upper_bound_rows": 1
+}

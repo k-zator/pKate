@@ -55,6 +55,24 @@ def test_stage1_scaffold_oof_requires_two_independent_groups():
         )
 
 
+def test_stage1_supplement_loader_skips_headerless_empty_sources(tmp_path):
+    empty = tmp_path / "empty.csv"
+    empty.write_text("", encoding="utf-8")
+    missing = tmp_path / "missing.csv"
+    canonical = pd.DataFrame({
+        "smiles": ["CC"],
+        "sample_weight": [1.0],
+    })
+
+    loaded, report = stage1_train._load_supplemental_sites(
+        f"{empty},{missing}", canonical
+    )
+
+    assert loaded.empty
+    assert report["status"] == "available_but_empty"
+    assert report["candidate_rows"] == 0
+
+
 def test_stage1_label_interpolation_oof_is_complete_and_reproducible():
     features = pd.DataFrame({"signal": np.arange(8, dtype=float)})
     target = 3.0 * features["signal"].to_numpy() - 2.0

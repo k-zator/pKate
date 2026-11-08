@@ -1,0 +1,13 @@
+case_id,system,pdb,variant,cofactor,metal_center,acid_form,base_form,experimental_pka,qualifier,prediction_semantics,site_kind,label_origin,computational_teacher,evaluation_only,eligible_for_training,source_doi,source_table,license
+adh_tfe,alcohol_dehydrogenase,1AXE,TFE-bound,NAD+,Zn(II),CF3CH2OH,CF3CH2O-,4.3,exact,individual_metal_bound_site_pka,metal_bound_alcohol,experimental,,True,False,10.1021/acs.jctc.6c00884,Table 1,CC-BY-4.0
+adh_nad,alcohol_dehydrogenase,1AXE,NAD+-bound,NAD+,Zn(II),HOH,OH-,7.6,exact,individual_metal_bound_site_pka,metal_bound_water,experimental,,True,False,10.1021/acs.jctc.6c00884,Table 1,CC-BY-4.0
+adh_nadh,alcohol_dehydrogenase,1AXE,NADH-bound,NADH,Zn(II),HOH,OH-,11.2,exact,individual_metal_bound_site_pka,metal_bound_water,experimental,,True,False,10.1021/acs.jctc.6c00884,Table 1,CC-BY-4.0
+adh_apo,alcohol_dehydrogenase,8ADH,apo,,Zn(II),HOH,OH-,9.2,exact,individual_metal_bound_site_pka,metal_bound_water,experimental,,True,False,10.1021/acs.jctc.6c00884,Table 1,CC-BY-4.0
+tlf_c55s,ribonucleotide_reductase_R2,1M2B,C55S,,Fe(III)2,Ser,Ser-,9.0,exact,individual_metal_bound_site_pka,metal_bound_serine,experimental,,True,False,10.1021/acs.jctc.6c00884,Table 1,CC-BY-4.0
+tlf_c59s,ribonucleotide_reductase_R2,1M2D,C59S,,Fe(III)2,Ser,Ser-,8.3,exact,individual_metal_bound_site_pka,metal_bound_serine,experimental,,True,False,10.1021/acs.jctc.6c00884,Table 1,CC-BY-4.0
+ca_wt,carbonic_anhydrase_II,2ILI,WT,,Zn(II),HOH,OH-,7.0,approximate,individual_metal_bound_site_pka,metal_bound_water,experimental,,True,False,10.1021/acs.jctc.6c00884,Table 1,CC-BY-4.0
+ca_e106q,carbonic_anhydrase_II,2ILI,E106Q,,Zn(II),HOH,OH-,6.9,approximate,individual_metal_bound_site_pka,metal_bound_water,experimental,,True,False,10.1021/acs.jctc.6c00884,Table 1,CC-BY-4.0
+mb_compound_ii,myoglobin,2V1E,Compound II,,Fe(IV),OH-,O2-,2.7,upper_bound,individual_metal_bound_site_pka,metal_bound_hydroxide,experimental,,True,False,10.1021/acs.jctc.6c00884,Table 1,CC-BY-4.0
+p450_compound_ii,cytochrome_P450,1S1F,Compound II,,Fe(IV),OH-,O2-,12.0,approximate,individual_metal_bound_site_pka,metal_bound_hydroxide,experimental,,True,False,10.1021/acs.jctc.6c00884,Table 1,CC-BY-4.0
+hnox_wt,HNOX,1U56,WT,,Fe(III),HOH,OH-,6.8,exact,individual_metal_bound_site_pka,metal_bound_water,experimental,,True,False,10.1021/acs.jctc.6c00884,Table 1,CC-BY-4.0
+hnox_i5l,HNOX,3NVR,I5L,,Fe(III),HOH,OH-,7.9,exact,individual_metal_bound_site_pka,metal_bound_water,experimental,,True,False,10.1021/acs.jctc.6c00884,Table 1,CC-BY-4.0

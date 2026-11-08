@@ -48,10 +48,10 @@ def test_runner_hands_exact_stage2_artifact_to_stage3_and_writes_manifest(
             json.dumps({"schema_version": "1.0.0"}), encoding="utf-8"
         )
         (stage3_dir / "metrics.json").write_text(
-            json.dumps({"stage3_schema_version": "1.6.0"}), encoding="utf-8"
+            json.dumps({"stage3_schema_version": "1.7.0"}), encoding="utf-8"
         )
         (stage3_dir / "stage3_output_schema.json").write_text(
-            json.dumps({"schema_version": "1.6.0"}), encoding="utf-8"
+            json.dumps({"schema_version": "1.7.0"}), encoding="utf-8"
         )
         return None, {
             "input_sha256": _sha256(stage2_output),
@@ -59,7 +59,7 @@ def test_runner_hands_exact_stage2_artifact_to_stage3_and_writes_manifest(
             "molecule_rows": 1,
             "complete_population_molecules": 1,
             "unavailable_incomplete_network_molecules": 0,
-            "stage3_schema_version": "1.6.0",
+            "stage3_schema_version": "1.7.0",
             "tautomer_ranking_schema_version": "1.1.0",
             "max_tautomers_per_configuration": 16,
             "ranked_tautomer_rows": 3,
@@ -85,7 +85,7 @@ def test_runner_hands_exact_stage2_artifact_to_stage3_and_writes_manifest(
     assert manifest["stage2_output_sha256"] == _sha256(stage2_output)
     assert manifest["stage3_output_sha256"] == _sha256(stage3_output)
     assert manifest["stage2_application_reused"] is False
-    assert manifest["stage3_schema_version"] == "1.6.0"
+    assert manifest["stage3_schema_version"] == "1.7.0"
     assert manifest["tautomer_ranking_schema_version"] == "1.1.0"
     assert manifest["max_tautomers_per_configuration"] == 16
     assert manifest["empirical_calibration_schema_version"] == "1.0.0"
@@ -130,7 +130,7 @@ def test_runner_reuses_only_prior_manifest_matched_stage2_artifact(tmp_path, mon
             "molecule_rows": 1,
             "complete_population_molecules": 1,
             "unavailable_incomplete_network_molecules": 0,
-            "stage3_schema_version": "1.6.0",
+            "stage3_schema_version": "1.7.0",
             "tautomer_ranking_schema_version": "1.1.0",
             "max_tautomers_per_configuration": 16,
             "empirical_pka_side_calibration": {"schema_version": "1.0.0"},

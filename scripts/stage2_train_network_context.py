@@ -48,6 +48,9 @@ DEFAULT_NETWORK_DATASET = "data/processed/pka_molecule_microstate_network_datase
 DEFAULT_OUT_DIR = "data/processed/ml_models_experimental_only/stage2_network_context"
 MIN_FAMILY_TRAINING_ROWS = 50
 PRIORITY_SUPPORTED_FAMILIES = frozenset({"guanidine_like", "phenol_phenolate"})
+MAX_WEAK_SUPERVISION_WEIGHT_FRACTION = 0.25
+PKAHUB_MACRO_SUPERVISION_SCOPE = "weak_molecule_macro_set_jointly_matched"
+MAX_CASP16_MACRO_WEIGHT_FRACTION = 0.025
 
 
 def supported_families_for_counts(
@@ -95,15 +98,15 @@ def _model_candidates() -> Dict[str, object]:
         ),
         "extra_trees_leaf2": ExtraTreesRegressor(
             n_estimators=350, min_samples_leaf=2, max_features=0.7,
-            n_jobs=-1, random_state=17,
+            max_leaf_nodes=1024, n_jobs=-1, random_state=17,
         ),
         "extra_trees_leaf5": ExtraTreesRegressor(
             n_estimators=350, min_samples_leaf=5, max_features=0.7,
-            n_jobs=-1, random_state=17,
+            max_leaf_nodes=1024, n_jobs=-1, random_state=17,
         ),
         "random_forest_leaf2": RandomForestRegressor(
             n_estimators=350, min_samples_leaf=2, max_features=0.7,
-            n_jobs=-1, random_state=17,
+            max_leaf_nodes=1024, n_jobs=-1, random_state=17,
         ),
     }
 
@@ -205,7 +208,12 @@ def _fit_evaluate(
         target[train_idx],
         sample_weight=weights[train_idx],
     )
-    train_family_counts = training_df.iloc[train_idx]["site_family"].value_counts()
+    support_rows = training_df.iloc[train_idx]
+    if "training_cohort" in support_rows.columns:
+        support_rows = support_rows[
+            support_rows["training_cohort"].astype(str) == "exact_site"
+        ]
+    train_family_counts = support_rows["site_family"].value_counts()
     supported_families = supported_families_for_counts(
         {str(family): int(count) for family, count in train_family_counts.items()},
         minimum_family_training_rows=minimum_family_training_rows,
@@ -320,6 +328,219 @@ def _fit_evaluate(
     return metrics, evaluation, model
 
 
+def _cap_weak_supervision_weights(
+    exact_site_df: pd.DataFrame,
+    weak_site_df: pd.DataFrame,
+) -> Tuple[pd.DataFrame, pd.DataFrame, Dict[str, object]]:
+    """Cap legacy weak evidence first, then allocate remaining budget to pKahub.
+
+    Keeping the cohorts separate prevents a large imported macro-pKa collection
+    from shrinking or replacing the weak evidence already used by the project.
+    """
+    exact_weight = float(exact_site_df["sample_weight"].astype(float).sum())
+    maximum_weight = MAX_WEAK_SUPERVISION_WEIGHT_FRACTION * exact_weight
+    if weak_site_df.empty:
+        empty = weak_site_df.copy()
+        return empty, empty, {
+            "maximum_fraction_of_exact_weight": MAX_WEAK_SUPERVISION_WEIGHT_FRACTION,
+            "maximum_total_weight": maximum_weight,
+            "legacy": {"rows": 0, "raw_weight": 0.0, "effective_weight": 0.0},
+            "pkahub_macro": {"rows": 0, "raw_weight": 0.0, "effective_weight": 0.0},
+        }
+
+    work = weak_site_df.copy()
+    is_pkahub_macro = work["supervision_scope"].astype(str).eq(
+        PKAHUB_MACRO_SUPERVISION_SCOPE
+    )
+    legacy = work[~is_pkahub_macro].copy()
+    pkahub = work[is_pkahub_macro].copy()
+
+    def scale(part: pd.DataFrame, budget: float, cohort: str) -> Tuple[pd.DataFrame, Dict]:
+        part = part.copy()
+        raw = float(part["sample_weight"].astype(float).sum()) if not part.empty else 0.0
+        factor = min(1.0, float(budget) / raw) if raw > 0.0 else 0.0
+        if not part.empty:
+            part["sample_weight_raw_before_cohort_cap"] = part[
+                "sample_weight_raw"
+            ].astype(float)
+            part["sample_weight"] = part["sample_weight"].astype(float) * factor
+            part["training_cohort"] = cohort
+        return part, {
+            "rows": int(len(part)),
+            "raw_weight": raw,
+            "weight_scale": float(factor),
+            "effective_weight": float(part["sample_weight"].sum()) if not part.empty else 0.0,
+        }
+
+    legacy, legacy_report = scale(legacy, maximum_weight, "legacy_weak")
+    remaining = max(0.0, maximum_weight - float(legacy_report["effective_weight"]))
+    pkahub, pkahub_report = scale(pkahub, remaining, "pkahub_macro_weak")
+    return legacy, pkahub, {
+        "maximum_fraction_of_exact_weight": MAX_WEAK_SUPERVISION_WEIGHT_FRACTION,
+        "maximum_total_weight": maximum_weight,
+        "allocation_policy": (
+            "preserve legacy weak evidence first; pKahub may use only the remaining budget"
+        ),
+        "legacy": legacy_report,
+        "pkahub_macro": pkahub_report,
+    }
+
+
+def _partition_and_cap_external_weak_supervision(
+    exact_site_df: pd.DataFrame,
+    weak_site_df: pd.DataFrame,
+) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, Dict[str, object]]:
+    """Preserve the established weak budget and add a small CASP16 budget.
+
+    pKahub retains the original 25% total weak-label cap.  CASP16 is evaluated
+    separately and may contribute at most another 2.5% of exact-site weight,
+    so its small high-provenance cohort is neither erased by the much larger
+    pKahub import nor allowed to dominate the exact labels.
+    """
+    if weak_site_df.empty:
+        legacy, pkahub, base_report = _cap_weak_supervision_weights(
+            exact_site_df, weak_site_df
+        )
+        return legacy, pkahub, weak_site_df.copy(), {
+            **base_report,
+            "casp16_macro": {
+                "rows": 0, "raw_weight": 0.0, "effective_weight": 0.0,
+                "maximum_fraction_of_exact_weight": MAX_CASP16_MACRO_WEIGHT_FRACTION,
+            },
+        }
+    source = weak_site_df.get(
+        "weak_source_dataset", pd.Series("", index=weak_site_df.index)
+    ).astype(str).str.lower()
+    casp16_raw = weak_site_df[source.eq("casp16")].copy()
+    established = weak_site_df[~source.eq("casp16")].copy()
+    legacy, pkahub, base_report = _cap_weak_supervision_weights(
+        exact_site_df, established
+    )
+    exact_weight = float(exact_site_df["sample_weight"].astype(float).sum())
+    maximum = MAX_CASP16_MACRO_WEIGHT_FRACTION * exact_weight
+    raw = (
+        float(casp16_raw["sample_weight"].astype(float).sum())
+        if not casp16_raw.empty else 0.0
+    )
+    scale = min(1.0, maximum / raw) if raw > 0.0 else 0.0
+    casp16 = casp16_raw.copy()
+    if not casp16.empty:
+        casp16["sample_weight_raw_before_cohort_cap"] = casp16[
+            "sample_weight_raw"
+        ].astype(float)
+        casp16["sample_weight"] = casp16["sample_weight"].astype(float) * scale
+        casp16["training_cohort"] = "casp16_macro_weak"
+    report = {
+        **base_report,
+        "casp16_macro": {
+            "rows": int(len(casp16)),
+            "raw_weight": raw,
+            "weight_scale": float(scale),
+            "effective_weight": (
+                float(casp16["sample_weight"].sum()) if not casp16.empty else 0.0
+            ),
+            "maximum_fraction_of_exact_weight": MAX_CASP16_MACRO_WEIGHT_FRACTION,
+            "maximum_weight": maximum,
+        },
+        "allocation_policy_extension": (
+            "CASP16 receives an independently gated budget capped at 2.5% of "
+            "exact-site weight; it cannot displace established weak evidence"
+        ),
+    }
+    return legacy, pkahub, casp16, report
+
+
+def _evaluate_with_weak_training(
+    model_template: object,
+    exact_site_df: pd.DataFrame,
+    weak_site_df: pd.DataFrame,
+    full_site_df: pd.DataFrame,
+    full_features: pd.DataFrame,
+    exact_train_idx: np.ndarray,
+    exact_test_idx: np.ndarray,
+) -> Tuple[Dict, pd.DataFrame, object]:
+    """Evaluate weak augmentation without leaking held-out scaffolds into fitting."""
+    heldout_scaffolds = set(
+        exact_site_df.iloc[exact_test_idx]["smiles"].map(scaffold_group_key).astype(str)
+    )
+    if weak_site_df.empty:
+        eligible_weak = weak_site_df.copy()
+    else:
+        eligible_weak = weak_site_df[
+            ~weak_site_df["smiles"].map(scaffold_group_key).astype(str).isin(
+                heldout_scaffolds
+            )
+        ].copy()
+    combined = pd.concat(
+        [exact_site_df, eligible_weak], ignore_index=True, sort=False
+    )
+    weak_positions = np.arange(len(exact_site_df), len(combined), dtype=int)
+    train_idx = np.concatenate(
+        [np.asarray(exact_train_idx, dtype=int), weak_positions]
+    )
+    return _fit_evaluate(
+        model_template,
+        combined,
+        full_site_df,
+        full_features,
+        train_idx,
+        np.asarray(exact_test_idx, dtype=int),
+        MIN_FAMILY_TRAINING_ROWS,
+    )
+
+
+def _pkahub_macro_gate(
+    model_template: object,
+    exact_site_df: pd.DataFrame,
+    legacy_weak_df: pd.DataFrame,
+    pkahub_weak_df: pd.DataFrame,
+    full_site_df: pd.DataFrame,
+    full_features: pd.DataFrame,
+    exact_train_idx: np.ndarray,
+    exact_test_idx: np.ndarray,
+    candidate_name: str = "pkahub_macro",
+) -> Tuple[Dict[str, object], pd.DataFrame, pd.DataFrame]:
+    """Admit one external weak cohort only when exact validation does not worsen."""
+    baseline_metrics, baseline_eval, _ = _evaluate_with_weak_training(
+        model_template, exact_site_df, legacy_weak_df, full_site_df, full_features,
+        exact_train_idx, exact_test_idx,
+    )
+    if pkahub_weak_df.empty or float(pkahub_weak_df["sample_weight"].sum()) <= 0.0:
+        return ({
+            "status": f"not_applicable_no_effective_{candidate_name}_weight",
+            "deployed": False,
+            "baseline": baseline_metrics,
+        }, baseline_eval, baseline_eval)
+    augmented_weak = pd.concat(
+        [legacy_weak_df, pkahub_weak_df], ignore_index=True, sort=False
+    )
+    augmented_metrics, augmented_eval, _ = _evaluate_with_weak_training(
+        model_template, exact_site_df, augmented_weak, full_site_df, full_features,
+        exact_train_idx, exact_test_idx,
+    )
+    baseline = baseline_metrics["stage2_supported_pairwise_free_energy"]
+    augmented = augmented_metrics["stage2_supported_pairwise_free_energy"]
+    deployed = bool(
+        augmented["mae"] <= baseline["mae"]
+        and augmented["weighted_mae"] <= baseline["weighted_mae"]
+    )
+    return ({
+        "status": "evaluated_on_locked_exact_site_scaffold_split",
+        "deployed": deployed,
+        "selection_policy": (
+            "deploy only when unweighted and weighted exact-site scaffold MAE do not worsen"
+        ),
+        "baseline_legacy_weak": baseline_metrics,
+        f"augmented_with_{candidate_name}": augmented_metrics,
+        "mae_change_augmented_minus_baseline": float(
+            augmented["mae"] - baseline["mae"]
+        ),
+        "weighted_mae_change_augmented_minus_baseline": float(
+            augmented["weighted_mae"] - baseline["weighted_mae"]
+        ),
+    }, baseline_eval, augmented_eval)
+
+
 def _select_model(
     training_df: pd.DataFrame,
     full_site_df: pd.DataFrame,
@@ -379,6 +600,18 @@ def _split_manifest(site_df: pd.DataFrame, train_idx: np.ndarray, test_idx: np.n
     return manifest
 
 
+def _compact_training_audit_table(table: pd.DataFrame) -> pd.DataFrame:
+    """Drop repeated network blobs that are already retained in the source CSV.
+
+    A large weak cohort can repeat the same molecule-level node/site JSON once
+    per matched macro step. Those blobs are needed while fitting and validating,
+    but retaining them again in every training audit row can add hundreds of MB.
+    """
+    return table.drop(
+        columns=["network_sites_json", "microstate_nodes_json"], errors="ignore"
+    )
+
+
 def train_stage2(
     network_dataset_path: str,
     out_dir: str,
@@ -422,6 +655,7 @@ def train_stage2(
         position_lookup[(str(molecule), str(site))]
         for molecule, site in zip(site_df["molecule_key"], site_df["site_id"])
     ]
+    site_df["training_cohort"] = "exact_site"
     validate_stage2_site_table(site_df)
     if site_df.empty:
         raise RuntimeError("No experimentally anchored multisite rows available for Stage 2")
@@ -429,14 +663,12 @@ def train_stage2(
     weak_site_df, weak_blocked = build_stage2_weak_training_sites(
         network_df, full_site_df
     )
-    deployment_training = pd.concat(
-        [site_df, weak_site_df], ignore_index=True, sort=False
+    legacy_weak_df, pkahub_weak_df, casp16_weak_df, weak_weight_policy = (
+        _partition_and_cap_external_weak_supervision(site_df, weak_site_df)
     )
-    target = deployment_training["stage2_delta_target"].astype(float)
     family_counts = site_df["site_family"].value_counts().to_dict()
     supported_families = supported_families_for_counts(family_counts)
-    training_positions = deployment_training["full_site_position"].to_numpy(dtype=int)
-    if not np.isfinite(features.to_numpy(dtype=float)).all() or not np.isfinite(target).all():
+    if not np.isfinite(features.to_numpy(dtype=float)).all():
         raise ValueError("Non-finite Stage 2 features or targets")
 
     random_train, random_test = random_molecule_split(site_df, test_frac=test_frac)
@@ -448,13 +680,55 @@ def train_stage2(
         selection_splits=selection_splits,
         test_frac=test_frac,
     )
-    random_metrics, random_eval, _ = _fit_evaluate(
-        selected_template, site_df, full_site_df, features, random_train, random_test,
-        MIN_FAMILY_TRAINING_ROWS,
+    pkahub_gate, pkahub_baseline_eval, pkahub_augmented_eval = _pkahub_macro_gate(
+        selected_template,
+        site_df,
+        legacy_weak_df,
+        pkahub_weak_df,
+        full_site_df,
+        features,
+        scaffold_train,
+        scaffold_test,
     )
-    scaffold_metrics, scaffold_eval, _ = _fit_evaluate(
-        selected_template, site_df, full_site_df, features, scaffold_train, scaffold_test,
-        MIN_FAMILY_TRAINING_ROWS,
+    deploy_pkahub_macro = bool(pkahub_gate.get("deployed", False))
+    established_deployed_weak = pd.concat(
+        [legacy_weak_df] + ([pkahub_weak_df] if deploy_pkahub_macro else []),
+        ignore_index=True,
+        sort=False,
+    )
+    casp16_gate, casp16_baseline_eval, casp16_augmented_eval = _pkahub_macro_gate(
+        selected_template,
+        site_df,
+        established_deployed_weak,
+        casp16_weak_df,
+        full_site_df,
+        features,
+        scaffold_train,
+        scaffold_test,
+        candidate_name="casp16_macro",
+    )
+    deploy_casp16_macro = bool(casp16_gate.get("deployed", False))
+    deployed_weak_df = pd.concat(
+        [established_deployed_weak]
+        + ([casp16_weak_df] if deploy_casp16_macro else []),
+        ignore_index=True,
+        sort=False,
+    )
+    deployment_training = pd.concat(
+        [site_df, deployed_weak_df], ignore_index=True, sort=False
+    )
+    target = deployment_training["stage2_delta_target"].astype(float)
+    training_positions = deployment_training["full_site_position"].to_numpy(dtype=int)
+    if not np.isfinite(target).all():
+        raise ValueError("Non-finite Stage 2 targets")
+
+    random_metrics, random_eval, _ = _evaluate_with_weak_training(
+        selected_template, site_df, deployed_weak_df, full_site_df, features,
+        random_train, random_test,
+    )
+    scaffold_metrics, scaffold_eval, _ = _evaluate_with_weak_training(
+        selected_template, site_df, deployed_weak_df, full_site_df, features,
+        scaffold_train, scaffold_test,
     )
 
     deployment_model = clone(selected_template)
@@ -482,7 +756,15 @@ def train_stage2(
         "training_measurement_method": "experimental",
         "training_rows": int(len(deployment_training)),
         "exact_site_training_rows": int(len(site_df)),
-        "weak_marginalized_training_rows": int(len(weak_site_df)),
+        "weak_marginalized_training_rows": int(len(deployed_weak_df)),
+        "legacy_weak_training_rows": int(len(legacy_weak_df)),
+        "pkahub_macro_candidate_rows": int(len(pkahub_weak_df)),
+        "pkahub_macro_deployed": deploy_pkahub_macro,
+        "pkahub_macro_gate": pkahub_gate,
+        "casp16_macro_candidate_rows": int(len(casp16_weak_df)),
+        "casp16_macro_deployed": deploy_casp16_macro,
+        "casp16_macro_gate": casp16_gate,
+        "weak_supervision_weight_policy": weak_weight_policy,
         "training_molecules": int(deployment_training["molecule_key"].nunique()),
         "deployment_fit_rows": int(len(deployment_training)),
         "trained_on_all_eligible_rows": True,
@@ -515,7 +797,15 @@ def train_stage2(
         "training_measurement_method": "experimental",
         "rows": int(len(deployment_training)),
         "exact_site_rows": int(len(site_df)),
-        "weak_marginalized_rows": int(len(weak_site_df)),
+        "weak_marginalized_rows": int(len(deployed_weak_df)),
+        "legacy_weak_rows": int(len(legacy_weak_df)),
+        "pkahub_macro_candidate_rows": int(len(pkahub_weak_df)),
+        "pkahub_macro_deployed": deploy_pkahub_macro,
+        "pkahub_macro_gate": pkahub_gate,
+        "casp16_macro_candidate_rows": int(len(casp16_weak_df)),
+        "casp16_macro_deployed": deploy_casp16_macro,
+        "casp16_macro_gate": casp16_gate,
+        "weak_supervision_weight_policy": weak_weight_policy,
         "weak_blocked_incomplete_candidate_space": int(len(weak_blocked)),
         "molecules": int(site_df["molecule_key"].nunique()),
         "features": int(features.shape[1]),
@@ -545,9 +835,33 @@ def train_stage2(
     }
 
     Path(out_dir).mkdir(parents=True, exist_ok=True)
-    deployment_training.to_csv(os.path.join(out_dir, "training_site_table.csv"), index=False)
+    _compact_training_audit_table(deployment_training).to_csv(
+        os.path.join(out_dir, "training_site_table.csv"), index=False
+    )
     quarantine.to_csv(os.path.join(out_dir, "training_site_quarantine.csv"), index=False)
-    weak_site_df.to_csv(os.path.join(out_dir, "weak_molecule_training_rows.csv"), index=False)
+    _compact_training_audit_table(deployed_weak_df).to_csv(
+        os.path.join(out_dir, "weak_molecule_training_rows.csv"), index=False
+    )
+    _compact_training_audit_table(pkahub_weak_df).to_csv(
+        os.path.join(out_dir, "pkahub_macro_candidate_training_rows.csv"),
+        index=False,
+    )
+    pkahub_baseline_eval.to_csv(
+        os.path.join(out_dir, "pkahub_gate_baseline_predictions.csv"), index=False
+    )
+    pkahub_augmented_eval.to_csv(
+        os.path.join(out_dir, "pkahub_gate_augmented_predictions.csv"), index=False
+    )
+    _compact_training_audit_table(casp16_weak_df).to_csv(
+        os.path.join(out_dir, "casp16_macro_candidate_training_rows.csv"),
+        index=False,
+    )
+    casp16_baseline_eval.to_csv(
+        os.path.join(out_dir, "casp16_gate_baseline_predictions.csv"), index=False
+    )
+    casp16_augmented_eval.to_csv(
+        os.path.join(out_dir, "casp16_gate_augmented_predictions.csv"), index=False
+    )
     weak_blocked.to_csv(os.path.join(out_dir, "weak_molecule_blocked.csv"), index=False)
     selection_detail.to_csv(os.path.join(out_dir, "model_selection_folds.csv"), index=False)
     bundle["training_dataset_sha256"] = _sha256(

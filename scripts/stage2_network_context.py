@@ -8,6 +8,7 @@ from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd  # type: ignore
+from scipy.optimize import linear_sum_assignment  # type: ignore
 from rdkit import Chem, rdBase  # type: ignore
 from sklearn.isotonic import IsotonicRegression  # type: ignore
 
@@ -378,8 +379,100 @@ def build_stage2_weak_training_sites(
                 })
             continue
 
-        seen = set()
+        def add_candidate(
+            measurement: Dict,
+            candidate: pd.Series,
+            candidate_probability: float,
+            supervision_scope: str,
+        ) -> None:
+            value = float(measurement["experimental_pka"])
+            weak_id = str(measurement.get("transition_row_id", ""))
+            row = candidate.to_dict()
+            row.update({
+                "experimental_anchor_pka": value,
+                "experimental_measurement_count": 1.0,
+                "experimental_measurement_mean": value,
+                "experimental_measurement_std": 0.0,
+                "experimental_measurement_mad": 0.0,
+                "experimental_measurement_robust_sigma": 0.0,
+                "experimental_measurement_min": value,
+                "experimental_measurement_max": value,
+                "experimental_measurement_range": 0.0,
+                "experimental_medium_confidence_fraction": 1.0,
+                "experimental_values_json": json.dumps([value], separators=(",", ":")),
+                "experimental_evidence_tier": "ambiguous",
+                "supervision_scope": supervision_scope,
+                "weak_measurement_id": weak_id,
+                "weak_macro_set_id": str(measurement.get("macro_set_id", "")),
+                "weak_source_measurement_scope": str(
+                    measurement.get("source_measurement_scope", "")
+                ),
+                "weak_source_dataset": str(measurement.get("source_dataset", "")),
+                "weak_candidate_probability": float(candidate_probability),
+                "stage2_delta_target": value - float(candidate["stage1_network_macro_pka"]),
+                "sample_weight_raw": float(total_measurement_weight) * float(candidate_probability),
+                "sample_weight": float(total_measurement_weight) * float(candidate_probability),
+                "stage2_training_schema_version": STAGE2_TRAINING_SCHEMA_VERSION,
+                "target_definition": STAGE2_TARGET_DEFINITION,
+            })
+            accepted.append(row)
+
+        macro_measurements: Dict[str, List[Dict]] = {}
+        legacy_measurements: List[Dict] = []
         for measurement in measurements:
+            if str(measurement.get("source_measurement_scope", "")) == (
+                "unordered_molecule_macroscopic_pka_set"
+            ):
+                macro_measurements.setdefault(
+                    str(measurement.get("macro_set_id", "")), []
+                ).append(measurement)
+            else:
+                legacy_measurements.append(measurement)
+
+        predicted = candidates["stage1_network_macro_pka"].to_numpy(dtype=float)
+        for macro_set_id, set_measurements in macro_measurements.items():
+            unique = {
+                round(float(measurement["experimental_pka"]), 6): measurement
+                for measurement in set_measurements
+            }
+            ordered_measurements = [unique[value] for value in sorted(unique)]
+            if len(ordered_measurements) > len(candidates):
+                blocked.append({
+                    "molecule_id": molecule_id,
+                    "experimental_pka": json.dumps(sorted(unique)),
+                    "source_file": str(
+                        ordered_measurements[0].get("source_file", "")
+                        if ordered_measurements else ""
+                    ),
+                    "source_dataset": str(
+                        ordered_measurements[0].get("source_dataset", "")
+                        if ordered_measurements else ""
+                    ),
+                    "record_index": "",
+                    "blocked_reason": "macro_set_larger_than_complete_candidate_ladder",
+                    "macro_set_id": macro_set_id,
+                    "unresolved_ionizable_contexts_json": molecule.get(
+                        "unresolved_ionizable_contexts_json", "[]"
+                    ),
+                })
+                continue
+            observed = np.asarray(
+                [float(item["experimental_pka"]) for item in ordered_measurements],
+                dtype=float,
+            )
+            row_index, column_index = linear_sum_assignment(
+                np.abs(observed[:, None] - predicted[None, :])
+            )
+            for observed_index, candidate_index in zip(row_index, column_index):
+                add_candidate(
+                    ordered_measurements[int(observed_index)],
+                    candidates.iloc[int(candidate_index)],
+                    1.0,
+                    "weak_molecule_macro_set_jointly_matched",
+                )
+
+        seen = set()
+        for measurement in legacy_measurements:
             value = float(measurement["experimental_pka"])
             lineage = (
                 str(measurement.get("source_document_id", "")),
@@ -388,37 +481,18 @@ def build_stage2_weak_training_sites(
             if lineage in seen:
                 continue
             seen.add(lineage)
-            distance = np.abs(
-                candidates["stage1_network_macro_pka"].to_numpy(dtype=float) - value
-            )
+            distance = np.abs(predicted - value)
             likelihood = np.exp(-distance / max(0.25, float(assignment_temperature)))
             probability = likelihood / max(float(likelihood.sum()), 1e-12)
-            weak_id = str(measurement.get("transition_row_id", ""))
-            for (_, candidate), candidate_probability in zip(candidates.iterrows(), probability):
-                row = candidate.to_dict()
-                row.update({
-                    "experimental_anchor_pka": value,
-                    "experimental_measurement_count": 1.0,
-                    "experimental_measurement_mean": value,
-                    "experimental_measurement_std": 0.0,
-                    "experimental_measurement_mad": 0.0,
-                    "experimental_measurement_robust_sigma": 0.0,
-                    "experimental_measurement_min": value,
-                    "experimental_measurement_max": value,
-                    "experimental_measurement_range": 0.0,
-                    "experimental_medium_confidence_fraction": 1.0,
-                    "experimental_values_json": json.dumps([value], separators=(",", ":")),
-                    "experimental_evidence_tier": "ambiguous",
-                    "supervision_scope": "weak_molecule_macro_marginalized",
-                    "weak_measurement_id": weak_id,
-                    "weak_candidate_probability": float(candidate_probability),
-                    "stage2_delta_target": value - float(candidate["stage1_network_macro_pka"]),
-                    "sample_weight_raw": float(total_measurement_weight) * float(candidate_probability),
-                    "sample_weight": float(total_measurement_weight) * float(candidate_probability),
-                    "stage2_training_schema_version": STAGE2_TRAINING_SCHEMA_VERSION,
-                    "target_definition": STAGE2_TARGET_DEFINITION,
-                })
-                accepted.append(row)
+            for (_, candidate), candidate_probability in zip(
+                candidates.iterrows(), probability
+            ):
+                add_candidate(
+                    measurement,
+                    candidate,
+                    float(candidate_probability),
+                    "weak_molecule_macro_marginalized",
+                )
     return pd.DataFrame(accepted), pd.DataFrame(blocked)
 
 

@@ -526,7 +526,7 @@ def apply_stage2(
         "output_sha256": _sha256(output_path),
     }
     report_path = report_path or os.path.join(
-        os.path.dirname(model_path), "stage2_free_energy_application_metrics.json"
+        os.path.dirname(output_path), "stage2_free_energy_application_metrics.json"
     )
     Path(report_path).parent.mkdir(parents=True, exist_ok=True)
     with open(report_path, "w", encoding="utf-8") as handle:
@@ -540,6 +540,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--network-dataset", default=DEFAULT_INPUT)
     parser.add_argument("--model", default=DEFAULT_MODEL)
     parser.add_argument("--output", default=DEFAULT_OUTPUT)
+    parser.add_argument(
+        "--report",
+        default=None,
+        help="Application metrics JSON (default: beside --output).",
+    )
     parser.add_argument(
         "--allow-compatible-network",
         action="store_true",
@@ -555,6 +560,7 @@ def main() -> None:
         args.network_dataset,
         args.model,
         args.output,
+        report_path=args.report,
         allow_compatible_network=args.allow_compatible_network,
     )
     print(json.dumps(report, indent=2))

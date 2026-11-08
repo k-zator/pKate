@@ -25,7 +25,7 @@ from typing import Dict, Iterable, List, Mapping, Optional, Sequence
 from rdkit import Chem  # type: ignore
 
 
-EVIDENCE_POLICY_SCHEMA_VERSION = "1.2.0"
+EVIDENCE_POLICY_SCHEMA_VERSION = "1.3.0"
 DEFAULT_REFERENCE_PRIORS = "data/curation/stage1_reference_pka_priors.csv"
 AQUEOUS_ACTIVE_PKA_RANGE = (0.0, 14.0)
 
@@ -41,6 +41,11 @@ PERMANENT_CHARGE_LABELS = frozenset({"quaternary_ammonium"})
 EXTREME_RANGE_DISABLED_LABELS = frozenset({
     "ketone", "aldehyde", "ester", "lactone", "ether",
     "amide_primary", "amide_secondary", "amide_tertiary",
+    # Ordinary indole N is pyrrole-like: protonation is strongly acidic and
+    # N-H deprotonation lies above the supported aqueous 0--14 range.
+    # N-substituted indoles have no N-H coordinate at all.  Keep the detected
+    # scaffold as context, but do not block other enumerable sites.
+    "indole",
 })
 UNCLASSIFIED_NITROGEN_LABELS = frozenset({
     "unclassified_aromatic_ring_N", "unclassified_aliphatic_ring_N",
@@ -76,7 +81,7 @@ UNRESOLVED_IONIZABLE_LABELS = frozenset({
     "pyrazolidine",
     "n_substituted_tetrazole",
     "124triazine", "7-azaindole", "n-indole",
-    "pyridazinone", "n-indazole", "nn-indazole", "indole", "Nindole",
+    "pyridazinone", "n-indazole", "nn-indazole", "Nindole",
     "isoNindole", "Sindole", "n-hydroxy", "hydrazone", "imide", "thioide",
     "thiophenol", "thioamide", "thioamideamide_anhydride",
     "thioamideamide", "thioamidethio",

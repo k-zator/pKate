@@ -35,6 +35,8 @@ prot/
 !/data/TRAINING_DATA_MANIFEST.csv
 !/data/curation/
 !/data/curation/**
+!/data/benchmarks/
+!/data/benchmarks/**
 !/data/processed/
 /data/processed/*
 !/data/processed/PART1_site_resolution_overrides.csv

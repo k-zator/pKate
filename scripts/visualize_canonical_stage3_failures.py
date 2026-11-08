@@ -221,13 +221,20 @@ def build_pka_failure_table(
         "molecule_id", "site_id", stage1_label_column, "site_family",
         "experimental_anchor_pka", "pred_intrinsic_pka",
     ] + [
+        column for column in ("smiles", "mapped_smiles")
+        if column in stage1_oof.columns
+    ] + [
         column for column in (
             "validation_regime", "exact_label_training_rows_in_fold",
             "exact_label_training_scaffolds_in_fold",
         ) if column in stage1_oof.columns
     ]
     stage1 = stage1_oof[stage1_columns].copy().rename(
-        columns={stage1_label_column: "site_label"}
+        columns={
+            stage1_label_column: "site_label",
+            "smiles": "input_smiles",
+            "mapped_smiles": "atom_mapped_smiles",
+        }
     )
     stage1 = stage1.rename(columns={"pred_intrinsic_pka": "validation_predicted_pka"})
     stage1["validation_scope"] = "stage1_scaffold_oof_single_site"
@@ -293,7 +300,26 @@ def build_pka_failure_table(
     ]].drop_duplicates(
         subset=["molecule_id", "site_id"]
     )
+    # Supplemental Stage 1 rows (for example pKahub) are fitted and evaluated
+    # without being copied into the canonical Stage 3 network.  Preserve their
+    # own OOF structure columns, while preferring Stage 3 context when it exists.
+    context = context.rename(columns={
+        "input_smiles": "stage3_input_smiles",
+        "atom_mapped_smiles": "stage3_atom_mapped_smiles",
+    })
     result = combined.merge(context, on=["molecule_id", "site_id"], how="left")
+    for structure_column, context_column in (
+        ("input_smiles", "stage3_input_smiles"),
+        ("atom_mapped_smiles", "stage3_atom_mapped_smiles"),
+    ):
+        if structure_column not in result.columns:
+            result[structure_column] = result.get(context_column)
+        elif context_column in result.columns:
+            result[structure_column] = result[structure_column].where(
+                result[structure_column].notna(), result[context_column]
+            )
+        if context_column in result.columns:
+            result = result.drop(columns=[context_column])
     result["deployed_assigned_macro_pka"] = result.get("stage2_predicted_macro_pka")
     if "stage3_one_body_pka" in result.columns:
         result["deployed_assigned_one_body_pka"] = result["stage3_one_body_pka"]
@@ -403,7 +429,12 @@ def _mapped_molecule_and_highlights(
     atom_maps: object,
     center_maps: object,
 ) -> Tuple[Optional[Chem.Mol], List[int], Dict[int, Tuple[float, float, float]]]:
-    mol = Chem.MolFromSmiles(str(mapped_smiles))
+    if mapped_smiles is None or pd.isna(mapped_smiles):
+        return None, [], {}
+    smiles = str(mapped_smiles).strip()
+    if not smiles or smiles.lower() in {"nan", "none", "null"}:
+        return None, [], {}
+    mol = Chem.MolFromSmiles(smiles)
     if mol is None:
         return None, [], {}
     site_maps = set(_parse_maps(atom_maps))

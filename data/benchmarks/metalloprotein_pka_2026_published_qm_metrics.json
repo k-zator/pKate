@@ -1,0 +1,20 @@
+{
+  "approximate_mae": 4.2,
+  "approximate_rows": 3,
+  "computational_teacher_used_for_training": false,
+  "evaluation_only": true,
+  "exact_mae": 1.525,
+  "exact_rows": 8,
+  "mean_upper_bound_violation": 1.5999999999999996,
+  "methods": [
+    "Min_TPSS_def2-TZVPD_relaxed_epsilon80"
+  ],
+  "pKate_model_prediction": false,
+  "panel_rows": 12,
+  "prediction_origin": [
+    "published_external_computation"
+  ],
+  "submitted_rows": 12,
+  "upper_bound_rows": 1,
+  "upper_bound_satisfaction": 0.0
+}

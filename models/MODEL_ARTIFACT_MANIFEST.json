@@ -1,51 +1,67 @@
 {
   "schema_version": "1.0.0",
-  "status": "local_release_candidate_not_uploaded",
+  "release_version": "0.2.0",
+  "status": "local_candidate_not_uploaded_source_license_review_required",
   "bundle": {
     "filename": "pkate-models-experimental-only.tar.gz",
-    "bytes": 52362906,
-    "sha256": "23c986b5bc9135c527e808c41f17d6921072d3008dd1ca8c6073892264666beb"
+    "bytes": 3455915,
+    "sha256": "9111ce6b84ac8df9826f4505e33e92c2caebf1c9ec1aaaa8acf0c58586d02370"
   },
   "installation_root": "data/processed/ml_models_experimental_only",
+  "runtime": {
+    "python_ci": "3.11",
+    "scikit_learn": "1.8.0",
+    "serialization_note": "The fitted estimators are pickle-based and require the pinned scikit-learn runtime."
+  },
   "stage1": {
     "schema_version": "3.1.0",
-    "training_rows": 2184,
+    "training_rows": 7085,
+    "canonical_training_rows": 2252,
+    "pkahub_training_rows": 4801,
+    "casp16_training_rows": 32,
     "trained_on_all_eligible_rows": true,
-    "training_dataset_sha256": "bf8b60188da7a170c17f94eafa76068767a824f2b0351f23d0f682f849a944e2"
+    "training_dataset_sha256": "57254adf23e9d65b87b32adfe7304c6007e3189e213c1664f58a8c48a13ce180"
   },
   "stage2": {
     "schema_version": "2.2.0",
     "free_energy_schema_version": "1.0.0",
-    "training_rows": 1831,
+    "training_rows": 16134,
+    "exact_site_training_rows": 1015,
+    "weak_marginalized_training_rows": 15119,
+    "legacy_weak_training_rows": 872,
+    "pkahub_macro_candidate_rows": 14247,
+    "pkahub_macro_deployed": true,
+    "casp16_macro_candidate_rows": 5,
+    "casp16_macro_deployed": false,
     "training_measurement_method": "experimental",
-    "training_dataset_sha256": "249b1cfb1f89d9ed3703337b165281f4e6fcc37c260ed15db6217eb848746201",
-    "network_dataset_sha256": "61a90a9ec30db77d78f6151e3c48f389a9c57971f1c4aefef7523c84e4256dfb"
+    "training_dataset_sha256": "7a712f9de30224a9cf22006c9a712475e3a307d3072d30bf4b7bf322641fda16",
+    "network_dataset_sha256": "00ee08fe1c864d1e8c19cb2ea1322573d69e2a424bab40356c80d8744ce96911"
   },
   "artifacts": [
     {
       "path": "stage1_intrinsic/stage1_intrinsic_model.pkl",
-      "bytes": 96131032,
-      "sha256": "bb2f45c842eefeb2ddc111a2988cd8ecf4ba3da11698562cb2f217f81e25315c"
+      "bytes": 4387907,
+      "sha256": "b78810bc1ce8c3988e638254063ca99e4c4e9272ce5b085f8b3cc8bb558b4a4c"
     },
     {
       "path": "stage1_intrinsic/metrics.json",
-      "bytes": 7241,
-      "sha256": "46a6c77e8cf2cf4a5762ac16ddf6b4b084ff03a34ed6cef8cc1ea2ee9647a9d2"
+      "bytes": 13173,
+      "sha256": "cf750b3ccbe1a36a947e30c0bcb417a47b8ba180040b509386b25dac87f189a5"
     },
     {
       "path": "stage1_intrinsic/scaffold_oof_predictions.csv",
-      "bytes": 1668569,
-      "sha256": "784a2969db49a5eaff706bce04c02fa8c89976cb956e727269a1237846e104e8"
+      "bytes": 7159118,
+      "sha256": "a0479ec019f67dda5eb7288d4765fc035a3e5bbab5176ab070ccf259944d35fd"
     },
     {
       "path": "stage2_network_context/stage2_network_context_model.pkl",
-      "bytes": 39197913,
-      "sha256": "4997e8ee2a91826c7b5fd61d634e14acfec2b362b488875c328f28127281e11e"
+      "bytes": 374587,
+      "sha256": "b0c5a992d9f893bb3c806a9f2f5e3d728fd851856bd9fa6bbdc6dc7818266788"
     },
     {
       "path": "stage2_network_context/scaffold_eval_predictions.csv",
-      "bytes": 5879566,
-      "sha256": "2cc4957cd4694c3e609b410ca781082ef74fecb7b352ada7eae88be444cc8c26"
+      "bytes": 6648372,
+      "sha256": "7442fc683a202bd28f7108456fae3c2bb169f0a996b432596831ef188f459cfa"
     },
     {
       "path": "stage2_network_context/training_site_quarantine.csv",

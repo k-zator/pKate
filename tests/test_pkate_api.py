@@ -8,8 +8,35 @@ import numpy as np
 import pandas as pd
 import pytest
 from rdkit import Chem
+import sklearn
 
 import pkate
+
+
+def test_public_version_matches_release_manifest():
+    project_root = Path(__file__).resolve().parents[1]
+    manifest = json.loads(
+        (project_root / "models" / "MODEL_ARTIFACT_MANIFEST.json").read_text()
+    )
+
+    assert pkate.__version__ == "0.2.0"
+    assert manifest["release_version"] == pkate.__version__
+
+
+def test_release_runtime_matches_serialized_model_contract():
+    """Keep clean-clone installs compatible with the fitted release pickles."""
+    project_root = Path(__file__).resolve().parents[1]
+    manifest = json.loads(
+        (project_root / "models" / "MODEL_ARTIFACT_MANIFEST.json").read_text()
+    )
+    required_version = str(manifest["runtime"]["scikit_learn"])
+
+    requirements = (project_root / "requirements.txt").read_text().splitlines()
+    environment = (project_root / "environment.yml").read_text().splitlines()
+
+    assert f"scikit-learn=={required_version}" in requirements
+    assert f"  - scikit-learn={required_version}" in environment
+    assert sklearn.__version__ == required_version
 
 
 def _artifacts(tmp_path: Path) -> pkate.ModelArtifacts:
@@ -364,6 +391,30 @@ def test_public_site_payload_normalizes_missing_strings_and_false_csv_boolean():
     assert payload["stage2_applied"] is False
 
 
+def test_public_site_payload_exposes_explicit_protein_residue_identity():
+    payload = pkate._site_payload(pd.Series({
+        "site_id": "protein_A_HIS_57",
+        "component_type": "protein_residue",
+        "site_label": "protein_his",
+        "site_family": "protein_residue",
+        "protein_chain": "A",
+        "protein_residue_name": "HIS",
+        "protein_residue_id": "57",
+        "protein_insertion_code": "B",
+        "protein_nearest_ligand_site_distance_angstrom": 3.2,
+        "stage3_predicted_site_form_at_ph": "acid_form",
+        "stage2_applied": True,
+    }))
+    assert payload["component_type"] == "protein_residue"
+    assert payload["protein_residue"] == {
+        "chain": "A",
+        "name": "HIS",
+        "number": "57",
+        "insertion_code": "B",
+        "nearest_ligand_site_distance_angstrom": 3.2,
+    }
+
+
 def test_public_result_warns_about_low_confidence_boundary_call(tmp_path):
     stage1_model = tmp_path / "stage1.pkl"
     stage2_model = tmp_path / "stage2.pkl"
@@ -383,6 +434,9 @@ def test_public_result_warns_about_low_confidence_boundary_call(tmp_path):
         "stage3_dominant_atom_mapped_smiles": "[CH3:1][NH3+:2]",
         "stage3_dominant_configuration_node_id": "acid",
         "stage3_dominant_formal_charge": 1,
+        "stage3_dominant_protein_site_forms_json": json.dumps({
+            "protein_A_ASP_42": "base_form"
+        }),
         "stage3_dominant_population": 0.5,
         "stage3_dominant_complete_microstate_heuristic_population": 0.5,
     }])
@@ -419,6 +473,9 @@ def test_public_result_warns_about_low_confidence_boundary_call(tmp_path):
 
     assert result.site_predictions[0]["predicted_protonation_state"] == "protonated"
     assert result.site_predictions[0]["confidence_tier"] == "very_low"
+    assert result.dominant_protein_site_forms == {
+        "protein_A_ASP_42": "base_form"
+    }
     assert "Low-confidence site calls: site_1" in result.warnings
 
 
@@ -703,6 +760,59 @@ def test_predict_reports_missing_site_output_as_pipeline_error(tmp_path, monkeyp
         pkate.predict("CN", artifacts=artifacts)
 
 
+def test_complex_coordinates_are_required_as_a_pair():
+    with pytest.raises(ValueError, match="must be supplied together"):
+        pkate.predict("CN", protein_structure="protein.cif")
+
+
+def test_predict_inserts_environment_layer_between_stage2_and_stage3(
+    tmp_path, monkeypatch
+):
+    artifacts = _artifacts(tmp_path)
+    captured = {}
+    _install_fake_public_pipeline(monkeypatch, captured)
+
+    def fake_environment(input_path, output_path, **kwargs):
+        captured["environment"] = {
+            "input_path": str(input_path),
+            "output_path": str(output_path),
+            **kwargs,
+        }
+        frame = pd.read_csv(input_path)
+        frame.to_csv(output_path, index=False)
+        return frame, {
+            "method": "synthetic_environment",
+            "applied_site_count": 1,
+        }
+
+    monkeypatch.setattr(pkate, "apply_protein_environment_file", fake_environment)
+    result = pkate.predict(
+        "CN",
+        artifacts=artifacts,
+        protein_structure=tmp_path / "complex.cif",
+        ligand_structure=tmp_path / "ligand.sdf",
+        protein_environment_model=tmp_path / "environment.pkl",
+        ligand_chain="L",
+        ligand_resname="LIG",
+        ligand_resid="7",
+    )
+
+    assert Path(captured["environment"]["input_path"]).name == "query_stage2_network.csv"
+    assert Path(captured["stage3"]["input_path"]).name == (
+        "query_stage2_protein_environment.csv"
+    )
+    selector = captured["environment"]["ligand_selector"]
+    assert (selector.chain, selector.residue_name, selector.residue_id) == (
+        "L", "LIG", "7"
+    )
+    assert captured["environment"]["joint_protein_sites"] is True
+    assert captured["environment"]["joint_protein_radius"] == pytest.approx(8.0)
+    assert captured["environment"]["maximum_joint_protein_sites"] == 6
+    assert captured["environment"]["maximum_joint_nodes"] == 4096
+    assert result.provenance["protein_environment"]["applied_site_count"] == 1
+    assert any("protein-residue" in warning for warning in result.warnings)
+
+
 def test_cli_forwards_user_arguments_and_emits_strict_json(monkeypatch, capsys):
     captured = {}
     molecule = Chem.MolFromSmiles("CCC")
@@ -722,5 +832,41 @@ def test_cli_forwards_user_arguments_and_emits_strict_json(monkeypatch, capsys):
     assert payload["status"] == "no_supported_ionizable_sites_detected"
 
 
+def test_cli_forwards_joint_protein_network_caps(monkeypatch, capsys):
+    captured = {}
+    molecule = Chem.MolFromSmiles("CCC")
+    assert molecule is not None
+    result = pkate._no_site_result("CCC", "CCC", molecule, 7.4)
+
+    def fake_predict(smiles, **kwargs):
+        captured.update(kwargs)
+        return result
+
+    monkeypatch.setattr(pkate, "predict", fake_predict)
+    assert pkate.main([
+        "CCC",
+        "--protein", "complex.cif",
+        "--ligand", "ligand.sdf",
+        "--no-joint-protein-sites",
+        "--joint-protein-radius", "6.5",
+        "--max-joint-protein-sites", "4",
+        "--max-joint-nodes", "512",
+        "--compact",
+    ]) == 0
+    json.loads(capsys.readouterr().out)
+    assert captured["joint_protein_sites"] is False
+    assert captured["joint_protein_radius"] == pytest.approx(6.5)
+    assert captured["max_joint_protein_sites"] == 4
+    assert captured["max_joint_nodes"] == 512
+
+
 def test_calculate_pkas_is_public_predict_alias():
     assert pkate.calculate_pkas is pkate.predict
+
+
+def test_cli_reports_release_version(capsys):
+    with pytest.raises(SystemExit) as exc_info:
+        pkate.main(["--version"])
+
+    assert exc_info.value.code == 0
+    assert capsys.readouterr().out.strip().endswith(" 0.2.0")

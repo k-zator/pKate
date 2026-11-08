@@ -47,6 +47,10 @@ from stage1_network_inference import (
 
 
 DEFAULT_TRANSITIONS = "data/processed/pka_microstate_dataset.csv"
+DEFAULT_SUPPLEMENTAL_TRANSITIONS = ",".join([
+    "data/processed/pkahub/macro_set_transition_placeholders.csv",
+    "data/processed/casp16/macro_set_transition_placeholders.csv",
+])
 DEFAULT_STAGE1 = "data/processed/ml_models_experimental_only/stage1_intrinsic/stage1_intrinsic_model.pkl"
 DEFAULT_STAGE1_METRICS = "data/processed/ml_models_experimental_only/stage1_intrinsic/metrics.json"
 DEFAULT_OUTPUT = "data/processed/pka_molecule_microstate_network_dataset.csv"
@@ -90,6 +94,15 @@ def _truthy(value: object, default: bool = False) -> bool:
     if isinstance(value, str):
         return value.strip().lower() in {"1", "true", "yes"}
     return bool(value)
+
+
+def _safe_int(value: object, default: int = 0) -> int:
+    try:
+        if pd.isna(value):
+            return default
+        return int(value)
+    except (TypeError, ValueError):
+        return default
 
 
 def _sha256_file(path: str) -> str:
@@ -434,11 +447,87 @@ def build_molecule_dataset(
     max_tautomers_per_state: int = 4,
     stage1_workers: int = 4,
     allow_stage1_detector_mismatch: bool = False,
+    supplemental_transitions_path: Optional[str] = None,
 ) -> Tuple[pd.DataFrame, pd.DataFrame]:
     transitions = pd.read_csv(transitions_path, low_memory=False)
     if set(transitions["measurement_method"].astype(str).str.lower()) != {"experimental"}:
         raise ValueError("Transition dataset must be experimental-only")
     transitions["molecule_group_key"] = transitions["input_smiles"].map(_molecule_group_key)
+    supplemental_paths = [
+        candidate.strip()
+        for candidate in str(supplemental_transitions_path or "").split(",")
+        if candidate.strip() and os.path.exists(candidate.strip())
+    ]
+    if supplemental_paths:
+        supplemental = pd.concat([
+            pd.read_csv(candidate, low_memory=False).assign(
+                supplemental_source_path=str(candidate)
+            )
+            for candidate in supplemental_paths
+        ], ignore_index=True, sort=False)
+        required = {
+            "measurement_method", "input_smiles", "assignment_teacher_used",
+            "source_dataset", "stage1_local_supervision_eligible",
+            "stage2_exact_site_supervision_eligible",
+            "stage2_weak_molecule_supervision_eligible",
+        }
+        missing = sorted(required - set(supplemental.columns))
+        if missing:
+            raise ValueError(f"Supplemental transition table missing columns: {missing}")
+        if set(supplemental["measurement_method"].astype(str).str.lower()) != {
+            "experimental"
+        }:
+            raise ValueError("Supplemental transitions are not experimental-only")
+        if supplemental["assignment_teacher_used"].map(_truthy).any():
+            raise ValueError("Supplemental transitions use a prohibited assignment teacher")
+        source_dataset = supplemental["source_dataset"].astype(str).str.lower()
+        unexpected_sources = sorted(set(source_dataset) - {"pkahub", "casp16"})
+        if unexpected_sources:
+            raise ValueError(
+                f"Unexpected supplemental transition sources: {unexpected_sources}"
+            )
+        is_pkahub = source_dataset.eq("pkahub")
+        pkahub_ignored = supplemental.get(
+            "pkahub_assignment_columns_ignored",
+            pd.Series(False, index=supplemental.index),
+        ).map(_truthy)
+        if is_pkahub.any() and not pkahub_ignored[is_pkahub].all():
+            raise ValueError("Supplemental pKahub assignment columns were not ignored")
+        is_casp16 = source_dataset.eq("casp16")
+        computed_ignored = supplemental.get(
+            "computed_pka_columns_ignored",
+            pd.Series(False, index=supplemental.index),
+        ).map(_truthy)
+        computed_used = supplemental.get(
+            "computational_pka_values_used",
+            pd.Series(True, index=supplemental.index),
+        ).map(_truthy)
+        if is_casp16.any() and (
+            not computed_ignored[is_casp16].all() or computed_used[is_casp16].any()
+        ):
+            raise ValueError("CASP16 supplemental rows include computed pKa values")
+        if supplemental["stage1_local_supervision_eligible"].map(_truthy).any():
+            raise ValueError("Macroscopic supplemental rows cannot supervise Stage 1")
+        if supplemental["stage2_exact_site_supervision_eligible"].map(_truthy).any():
+            raise ValueError("Macroscopic supplemental rows cannot be exact-site labels")
+        if not supplemental["stage2_weak_molecule_supervision_eligible"].map(
+            _truthy
+        ).all():
+            raise ValueError("Macroscopic supplemental rows must be weak-only")
+        supplemental["molecule_group_key"] = supplemental["input_smiles"].map(
+            _molecule_group_key
+        )
+        overlap = set(transitions["molecule_group_key"]) & set(
+            supplemental["molecule_group_key"]
+        )
+        if overlap:
+            raise ValueError(
+                "Supplemental macro transitions overlap canonical molecule identities: "
+                f"{len(overlap)}"
+            )
+        transitions = pd.concat(
+            [transitions, supplemental], ignore_index=True, sort=False
+        )
     detector_versions = sorted(set(
         transitions.get(
             "functional_group_detector_schema_version",
@@ -514,6 +603,7 @@ def build_molecule_dataset(
                 "source_document_id": str(row.get("source_document_id", "")),
                 "source_molecule_id": str(row.get("source_molecule_id", "")),
                 "source_original_smiles": str(row.get("source_original_smiles", "")),
+                "source_dataset": str(row.get("source_dataset", "")),
                 "structure_provenance": str(row.get("structure_provenance", "unknown")),
                 "reported_site_label": str(row["site_label"]),
                 "site_assignment_confidence": (
@@ -532,6 +622,11 @@ def build_molecule_dataset(
                 ),
                 "network_mapping_basis": mapping_basis,
                 "measurement_scope": "experimental_macroscopic_site_associated",
+                "source_measurement_scope": str(
+                    row.get("source_measurement_scope", "site_associated")
+                ),
+                "macro_set_id": str(row.get("macro_set_id", "")),
+                "macro_set_size": _safe_int(row.get("macro_set_size", 0)),
                 "evidence_tier": str(row.get("evidence_tier", "legacy_exact")),
                 "evidence_tier_reason": str(row.get("evidence_tier_reason", "legacy_dataset")),
                 "experimental_site_attribution_confidence": str(
@@ -844,6 +939,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--transitions", default=DEFAULT_TRANSITIONS)
     parser.add_argument("--stage1-model", default=DEFAULT_STAGE1)
     parser.add_argument("--stage1-metrics", default=DEFAULT_STAGE1_METRICS)
+    parser.add_argument(
+        "--supplemental-transitions", default=DEFAULT_SUPPLEMENTAL_TRANSITIONS
+    )
+    parser.add_argument(
+        "--no-supplemental-transitions",
+        action="store_true",
+        help="Build networks only for the canonical release transitions.",
+    )
     parser.add_argument("--output", default=DEFAULT_OUTPUT)
     parser.add_argument("--quarantine", default=DEFAULT_QUARANTINE)
     parser.add_argument("--ph", type=float, default=7.4)
@@ -877,6 +980,11 @@ def main() -> None:
         max_tautomers_per_state=args.max_tautomers_per_state,
         stage1_workers=args.stage1_workers,
         allow_stage1_detector_mismatch=bool(args.allow_stage1_detector_mismatch),
+        supplemental_transitions_path=(
+            None
+            if args.no_supplemental_transitions
+            else args.supplemental_transitions
+        ),
     )
     print(f"molecule_rows={len(dataset)} quarantine_rows={len(quarantine)} output={args.output}")
 

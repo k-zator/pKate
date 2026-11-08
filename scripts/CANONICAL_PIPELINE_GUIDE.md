@@ -371,6 +371,16 @@ measurement share a small fixed total weight. These weak rows may improve the
 final deployment fit, but they cannot unlock a family, select the model, or
 enter the reported held-out metrics.
 
+For an imported unordered macroscopic pKa set, Stage 2 instead performs one
+joint minimum-cost assignment between observed values and distinct positions
+in the blind Stage 1 macro ladder. This prevents two observations from being
+silently attached to the same site/step. Legacy weak evidence keeps its weight
+first; imported pKahub evidence may use only the remaining budget under a total
+25%-of-exact-weight cap. CASP16 weak macro sets use a separate 2.5%-of-exact
+cap and cannot displace either source. Each imported source is deployed
+sequentially only when both weighted and unweighted exact-site error do not
+worsen on the locked scaffold split.
+
 If an ionizable context is unresolved or the network is incomplete, the weak
 measurement is written to `weak_molecule_blocked.csv`. Guessing a site from an
 incomplete candidate set would turn ambiguity into a false exact label.
@@ -447,6 +457,177 @@ The applied network is:
 Each molecule contains the corrected macro steps, one-body terms, pair
 couplings, contextual edge pKas, uncertainty intervals, closure diagnostics,
 and Stage 1/2 provenance hashes.
+
+### 7.8 Optional protein-environment correction
+
+`protein_environment_correction.py` is an opt-in layer for a posed ligand in
+an explicit protein structure. It does not replace or retrain the aqueous
+Stage 1/2 models. Instead, for each supported ligand site it predicts
+
+```text
+delta pKa = protein-environment pKa - aqueous/reference pKa
+```
+
+and adds the transferred, shrunk residual to the Stage 2 one-body term. Pair
+couplings are retained. The module then regenerates contextual edge pKas and
+the complete macroscopic ladder from the modified free-energy model before
+Stage 3 calculates populations. This placement avoids shifting only a display
+pKa while leaving the downstream thermodynamics inconsistent.
+
+When complex coordinates are supplied through the public API, the layer also
+adds nearby standard titratable side chains as explicit Stage 3 coordinates by
+default. Asp, Glu, His, Lys, Cys, and Tyr residues within the configured radius
+are ordered by distance to the nearest ligand site. Each selected residue has
+two states (`base_form` and protonated `acid_form`), and the ligand network is
+crossed with all selected protein states only while both caps hold:
+
+```text
+selected residues <= 6
+ligand configurations * 2^(selected residues) <= 4096
+```
+
+The defaults are an 8 Å radius, six protein sites, and 4096 joint nodes. The
+API/CLI can tighten or enlarge these caps; candidates that do not fit are
+reported rather than partially represented. Incomplete or truncated ligand
+networks do not receive explicit protein nodes because a normalized joint
+partition function would be misleading.
+Arginine and chain termini remain outside the explicit-node set in schema
+1.7.0 because this PKAD-R model does not provide a calibrated representation
+for their one-body residuals. Residues missing their conventional terminal
+site atoms are skipped and listed in the environment report.
+
+The residue one-body term is its documented model-compound pKa plus the direct
+PKAD-R environment residual. This use is distinct from the shrunk
+protein-to-ligand transfer. Residues whose chemistry calibration gate is
+withheld still enter with the reference pKa and an explicit low-confidence
+label.
+
+PKAD-R supplies scalar residue pKas, not ligand–residue or residue–residue
+microscopic couplings. Any pair containing an explicit protein coordinate is
+therefore assigned a capped Debye-screened Coulomb approximation based on the
+site-center distance (default dielectric 20, Debye length 10 Å, and absolute
+coupling cap 0.75 log10 units). The interaction is centered at the independent
+site occupancy at pH 7 so its mean contribution is not simply added again on
+top of the learned one-body residual:
+
+```text
+J_ij (x_i - r_i) (x_j - r_j)
+```
+
+where `r_i` is the reference occupancy. Expanded one-body and pair terms are
+written into the same Stage 2 free-energy object, and every joint edge pKa and
+macro step is regenerated from that object. The method is explicitly tagged
+`heuristic_centered_screened_coulomb_not_experimentally_identified`; Stage 3
+uses a stronger identifiability penalty for these pair terms.
+
+The local descriptor vector includes heavy/polar atom density, sparse signed
+charge-over-distance proxies, hydrogen-bond-compatible atoms, nearby
+titratable residues, waters, organic heterogens, metals, minimum distances,
+and residue-like chemistry indicators. Target residues and the supplied
+ligand are excluded from their own environment. A nearest-contact check
+rejects protein and ligand files that appear to use different coordinate
+frames.
+
+`train_protein_environment_model.py` trains a fixed, regularized random forest
+on strict PKAD-R `Main` rows. The target is the measured side-chain pKa minus a
+documented model-compound reference. All chains connected by PKAD-R's >30%
+sequence-identity links remain in the same validation fold. The current local
+artifact uses 643 main rows in 84 homology groups and obtains grouped OOF MAE
+0.870 pKₐ unit, compared with 0.987 for the zero-environment-shift baseline.
+Ninety-five same-fold mutant/state endpoints are audited as an augmentation
+candidate, but remain excluded because they worsen paired-delta OOF error. The
+saved artifact includes feature schema, source hash, fold metrics,
+finite-sample residual radii, group-bootstrap MAE-gain intervals,
+per-chemistry calibration gates, prediction clipping, and feature importances.
+It also consumes the prepared PKAD-3 candidate table by default, but reads only
+experimental pKa and structural identifiers. Every published computed feature
+and `model_pka` is ignored; descriptors are regenerated from checksum-recorded
+RCSB coordinates. Exact PKAD-R structure-sites are removed, alternative
+structures for one measurement share weight, total PKAD-3 weight is capped at
+25% of canonical weight, and UniProt links extend the homology components.
+Deployment requires both pooled and equal-group canonical PKAD-R OOF MAE not to
+worsen. The current 990-row candidate improves pooled MAE from 0.9023 to
+0.8701 and equal-group MAE from 1.1516 to 1.1137. It therefore enters the
+final estimator with total effective weight capped at 25% of canonical weight.
+An optional direct bound-ligand model is loaded only when its separate gate
+artifact is open and its schema, feature columns, and training-row count match.
+The current literature registry has 15 experimental cases and seven strict
+exact-structure/atom-mapped rows: two DHFR heteroaromatic ligands and five
+human GST–glutathione thiol transitions. Homologous Alpha- and Mu-class GSTs
+share groups, leaving four protein groups and two chemistries. This is below
+the required 12 rows, six groups, and three chemistries, so the bundle records
+seven candidates and zero deployed direct rows. If a future direct model
+passes both diversity and grouped-OOF gates, it takes precedence over
+protein-residue analogue transfer for ligand sites.
+PLBD intrinsic binding parameters remain linkage-consistency evidence only;
+they are protonation-corrected derived quantities rather than bound-ligand pKₐ
+labels.
+The calibration cohort contains all 648 strict structure-mapped sites: 643
+descriptor-ready OOF rows plus five explicit missing-terminal-atom failures.
+Each fold also fits a chemistry-only median using training-fold labels. A
+representation is fully validated only when its homology-group bootstrap p05
+MAE gain is positive against both this control and applying no correction;
+positive point gains without that support are provisional and half-scaled.
+
+`benchmark_protein_environment.py` is the non-fitting evaluation counterpart.
+It verifies the model's PKAD-R source hash, audits PKAD-2 for exact-site, PDB,
+reference, supplied >30%-identity-link, and near-duplicate sequence overlap,
+then scores only a measurement-deduplicated portability cohort. The current
+72-row mapped cohort has MAE 0.496 versus 0.676 for the residue-reference
+baseline, but only one row survives the conservative 0.80 near-duplicate proxy. Therefore
+the result is reported as portability, not independent external validation.
+
+The same runner evaluates the committed 13-case experimental binding-induced
+pKₐ-shift panel without converting bounds to point labels or coupled titration
+midpoints to individual-site targets. Its checksum-locked mapping specifies
+all apo/holo chains, repeated copies, removed ligands, and coupled sites. The
+frozen model maps all 13 rows but obtains exact-shift MAE 2.941 pKₐ units and
+satisfies three of six censored bounds. This is retained as a representation
+failure, not fitted away. Every benchmark label must be experimental,
+evaluation-only, ineligible for training, and have an empty
+computational-teacher field.
+
+Transfer to ligand chemistry is deliberately limited:
+
+| Ligand chemistry | Protein analogue | Analogue shrinkage | Representation calibration |
+|---|---|---:|---:|
+| carboxyl | Asp/Glu | 0.90 | 1.0, validated |
+| imidazole/benzimidazole | His | 0.80 | 0.5, provisional |
+| simple primary/secondary/tertiary amine | Lys | 0.65 | 0.0, withheld |
+| other detected amine | Lys | 0.50 | 0.0, withheld |
+| thiol | Cys | 0.75 | 0.5, provisional |
+| phenol | Tyr | 0.75 | 0.0, withheld |
+
+Unsupported chemistries receive a zero correction and are explicitly marked
+unsupported. Chemistries whose grouped OOF representation does not improve on
+the zero-shift baseline are marked evaluated-but-withheld: their aqueous pKa
+and aqueous confidence remain unchanged. Applied corrections receive a
+transfer penalty and never receive more than medium environment confidence.
+Stage 3 multiplies its usual site-state confidence by this environment factor.
+This is necessary because
+the training labels are protein side chains, not measured pKas of bound
+drug-like ligands. Metal coordination, conformational ensembles, proton-coupled
+protein rearrangement, and explicit Poisson--Boltzmann electrostatics remain
+outside this first layer.
+The public interface requires both a protein PDB/mmCIF and a posed ligand
+SDF/MOL/MOL2/PDB in the same coordinate frame. It preserves aqueous and
+corrected pKas side by side and writes `protein_environment_report.json` with
+coordinate, structure, model, training-source, mapping, and per-site
+provenance. The report also records candidate/selected/excluded residue counts,
+the final joint node and edge counts, and all coupling parameters. Stage 3's
+site table includes component type and residue identity, while the molecule
+table records the dominant protein-site forms separately from the ligand's
+SMILES and formal charge.
+
+The calibration files written beside the model are:
+
+- `strict_648_site_calibration_cohort.csv`: every strict structure-mapped site,
+  its descriptor/OOF status, prediction and residual when available;
+- `calibration.json`: global and per-chemistry MAE/RMSE/bias/correlation,
+  finite-sample 50/80/90/95% absolute-error radii, empirical coverage,
+  homology-group bootstrap gain intervals, and correction gates; and
+- `excluded_rows.json`: the three absent target residues excluded before the
+  648-site cohort plus the five mapped sites lacking terminal center atoms.
 
 ## 8. Stage 3: complete microstate inference
 
@@ -597,6 +778,7 @@ The principal artifacts are:
 | Stage 2 residual correction | Learned | Exact multisite anchors; weak complete-network evidence only in final low-weight fit |
 | Stage 2 ladder projection | Deterministic constraint | Successive macro pKas must be non-increasing |
 | Stage 2 pair terms | Regularized derived closure | Chosen to reproduce the predicted macro ladder; generally not identifiable measurements |
+| Protein-environment residual | Optional transferred learned correction | Homology-held-out protein side-chain pKa shifts; shrunk and uncertainty-penalized for ligand analogues |
 | Stage 3 configuration populations | Thermodynamic evaluation | Stage 2 energy function at the requested pH |
 | Stage 3 empirical pKa-side confidence | Held-out residual calibration | Proxy for whether scalar pKa supports the predicted side |
 | Stage 3 tautomer rank | Heuristic | RDKit rules within a fixed protonation configuration |
@@ -612,6 +794,15 @@ python scripts/build_release_microstate_dataset.py
 python scripts/build_molecule_microstate_network_dataset.py \
   --allow-stage1-detector-mismatch
 
+# Optional: prepare pKahub values without consuming its Epik assignments.
+python scripts/prepare_pkahub_training_data.py
+
+# Optional public CASP16 aqueous ligand evidence. Associated complex
+# coordinates remain reference-only rather than bound-state pKa labels.
+python scripts/acquire_casp16_pka_data.py
+python scripts/prepare_casp16_training_data.py
+python scripts/acquire_casp16_complex_structures.py
+
 python scripts/stage1_train_intrinsic_pka.py \
   --network-dataset data/processed/pka_molecule_microstate_network_dataset.csv \
   --out-dir data/processed/ml_models_experimental_only/stage1_intrinsic
@@ -620,6 +811,23 @@ python scripts/stage1_train_intrinsic_pka.py \
 python scripts/build_molecule_microstate_network_dataset.py
 
 python scripts/stage2_train_network_context.py
+
+# Optional PLBD proton-linkage consistency evidence (never direct pKa labels).
+python scripts/acquire_plbd_data.py
+python scripts/prepare_plbd_proton_linkage.py
+
+# Optional direct experimental ligand calibration candidate. The current
+# count/diversity gate remains closed, so zero rows enter fitting.
+python scripts/acquire_direct_bound_ligand_structures.py
+python scripts/prepare_direct_bound_ligand_calibration.py
+
+# Optional protein-environment augmentation candidate and specialist tests.
+python scripts/prepare_pkad3_training_data.py
+python scripts/acquire_pkad3_structures.py
+python scripts/train_protein_environment_model.py
+python scripts/acquire_metalloprotein_pka_supporting_information.py
+python scripts/benchmark_metalloprotein_pka.py
+python scripts/benchmark_metalloprotein_pka.py --published-qm
 python scripts/run_canonical_protonation_pipeline.py --ph 7.4
 python scripts/visualize_canonical_stage3_failures.py
 python scripts/audit_pka_evidence_quality.py

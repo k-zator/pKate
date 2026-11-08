@@ -5,9 +5,10 @@ dependencies:
   - python=3.11
   - matplotlib>=3.8,<4
   - numpy>=1.26,<3
+  - openpyxl>=3.1,<4
   - pandas>=2.1,<4
   - rdkit>=2023.09.5
-  - scikit-learn>=1.4,<2
+  - scikit-learn=1.8.0
   - scipy>=1.11,<2
   - pip>=23
   - pytest>=8,<10
